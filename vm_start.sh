@@ -2,7 +2,6 @@
 # One-command setup on a fresh VCL VM (run ON the VM). Clones the code from GitHub, builds the environments,
 # restores runs from the Hugging Face dataset repo, and starts the 10-minute backup loop.
 #   export HF_TOKEN=hf_...          # write-scoped token (or `hf auth login` beforehand)
-#   export GH_TOKEN=github_pat_...  # read access to the private repo (or set up a deploy key)
 #   END="2026-11-09 09:15" bash vm_start.sh
 # Then start work, e.g.:  cd ~/VSCA/vsca && screen -dmS work bash -c "./scripts/run_plan.sh tune > ~/VSCA/work.log 2>&1"
 set -euo pipefail
@@ -12,7 +11,7 @@ MARGIN_MIN=${MARGIN_MIN:-25}
 
 echo "== code"
 if [ -d ~/VSCA/.git ]; then git -C ~/VSCA pull -q; else
-  git clone -q "https://${GH_TOKEN:+x-access-token:$GH_TOKEN@}github.com/$REPO.git" ~/VSCA; fi
+  git clone -q "https://github.com/$REPO.git" ~/VSCA; fi
 cd ~/VSCA && chmod +x *.sh */scripts/*.sh
 
 echo "== environments"
