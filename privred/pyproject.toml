@@ -1,0 +1,24 @@
+[project]
+name = "privred"
+version = "0.1.0"
+description = "Privacy redistribution under hierarchy supervision and deletion (LiRA model sets on CIFAR-100, iNat-100); builds on sg"
+requires-python = ">=3.10"
+dependencies = [
+  "sg",
+  "torch>=2.3",
+  "torchvision>=0.18",
+  "numpy>=1.26",
+  "pyyaml>=6.0",
+  "scikit-learn>=1.3",
+  "scipy>=1.11",
+]
+
+[project.scripts]
+privred = "privred.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

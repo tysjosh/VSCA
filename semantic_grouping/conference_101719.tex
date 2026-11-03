@@ -1,0 +1,223 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{cite}
+\newcommand{\cond}[1]{\text{#1}}
+\begin{document}
+
+\title{When Does Semantic Grouping Change Fine-Grained Learning Difficulty? A Controlled Study with Matched Partitions}
+\author{\IEEEauthorblockN{Anonymous Authors}}
+\maketitle
+
+\begin{abstract}
+Class hierarchies are often added to image classifiers as auxiliary supervision, but it is rarely tested whether their \emph{semantic} content matters or whether any partition of the classes would do as well. In CIFAR-100 the superclass label is a fixed function of the fine label, so a hierarchy adds no labeled information; any effect must come from the partition acting as a prior on optimization. We propose a protocol that treats the partition as the unit of inference. A ResNet-18 receives auxiliary heads trained on the curated 20-superclass hierarchy, on 19 balanced random partitions, or on 19 partitions spanning within-group visual similarity, alongside deep-supervision and placement controls. Fine accuracy is factorized into coarse correctness and sibling discrimination, which separates a coarse-level benefit from fine-level interference. The semantic effect is defined as the curated hierarchy's residual from the trend of outcome against within-group similarity, with a rank test against random partitions. Difficulty strata come from independent cross-entropy models with cross-fitting, which avoids regression-to-the-mean artifacts. We test whether the semantic effect grows as labeled data shrink from 10\% to 100\% of CIFAR-100, and replicate the core contrast on a genus-structured iNaturalist subset. The design permits null and negative outcomes and reports no results.
+\end{abstract}
+
+\begin{IEEEkeywords}
+semantic hierarchy, auxiliary supervision, fine-grained classification, representation learning, example difficulty
+\end{IEEEkeywords}
+
+\section{Introduction}
+Image classifiers are often trained with class hierarchies: coarse labels at intermediate layers \cite{yan2015hdcnn,zhu2017bcnn}, hierarchy-aware losses \cite{bertinetto2020mistakes}, or hierarchical contrastive objectives \cite{zhang2022labels}. A common motivation is that coarse semantic structure makes fine distinctions easier to learn, especially when labels are scarce.
+
+Two facts make this claim hard to test. First, in the usual setting the coarse label is a deterministic function of the fine label. In CIFAR-100 \cite{krizhevsky2009cifar} every fine class belongs to exactly one of 20 superclasses, so the auxiliary loss adds no labeled information at any data budget. Whatever a hierarchy contributes must come from the partition of the classes itself. Second, there is only one curated hierarchy. A comparison between it and a few alternative groupings cannot separate ``semantic structure helps'' from ``this is one of the better partitions''.
+
+The size of the prior is small. There are $100!/((5!)^{20}\,20!)\approx e^{225.6}$ balanced partitions of 100 classes into 20 groups of five, so specifying one takes about 325 bits. The fine labels of the smallest budget we use, 4,000 training images, carry about $4{,}000\log_2 100\approx 26{,}600$ bits. Bits are not the right measure of inductive bias, but the comparison rules out the idea that the hierarchy supplies a large amount of extra supervision when labels are few.
+
+We therefore ask a narrower question: \emph{does the curated partition shape learning differently from matched partitions, and does any difference depend on how many labels are available?} Our protocol makes three design choices that follow from the two facts above.
+\begin{itemize}
+  \item The partition is the unit of inference. The curated hierarchy is ranked among 19 balanced random partitions and compared against a trend fitted across 19 further partitions that span within-group visual similarity.
+  \item Fine accuracy is factorized into coarse correctness and sibling discrimination. This separates a coarse-level benefit from fine-level interference, two effects that common error statistics conflate.
+  \item Representation probes at layers that receive auxiliary supervision are treated as manipulation checks rather than outcomes, and probe reference sets are fixed across budgets.
+\end{itemize}
+
+\section{Related Work}
+\textbf{Hierarchical and deep supervision.} Deeply-supervised nets attach classifiers to intermediate layers \cite{lee2015dsn}; our Flat-Aux condition is this baseline. HD-CNN \cite{yan2015hdcnn} and B-CNN \cite{zhu2017bcnn} predict coarse classes at intermediate layers and fine classes at the output, the design closest to our True-Hier condition. Bertinetto et al.\ \cite{bertinetto2020mistakes} show that hierarchy-aware training can trade top-1 accuracy for less severe mistakes, which motivates our factorization: a shift of errors into the correct superclass is not by itself interference. Zhang et al.\ \cite{zhang2022labels} use all levels of a label hierarchy in a contrastive objective.
+
+\textbf{Data-driven hierarchies.} Label trees can be learned from confusion structure rather than curated \cite{bengio2010trees}. Our similarity-spectrum partitions generalize this idea into a controlled axis.
+
+\textbf{Example difficulty.} Prediction depth, the earliest layer from which k-nearest-neighbor probes agree with the final prediction, was introduced by Baldock et al.\ \cite{baldock2021difficulty}. Test-set label errors in CIFAR-100 \cite{northcutt2021labelerrors} concentrate among examples that models find hard, which affects any hard-subset analysis.
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Setup and Outcome Factorization}
+Let $y\in\{1,\ldots,100\}$ be the fine label, $G$ a balanced partition of the classes into 20 groups of five, and $G(y)$ the group containing $y$. For a model with fine prediction $\hat y$ we define
+\begin{equation}
+\begin{aligned}
+C_G &= P\big(\hat y\in G(y)\big), &
+S_G &= P\big(\hat y=y \mid \hat y\in G(y)\big),
+\end{aligned}
+\label{eq:factor}
+\end{equation}
+so that fine accuracy is $\mathrm{Acc}=C_G\,S_G$ for any $G$. $C_G$ is \emph{coarse correctness} of the fine prediction and $S_G$ is \emph{sibling discrimination}. The commonly reported fraction of errors that fall inside the true group is
+\begin{equation}
+F_G=\frac{C_G(1-S_G)}{1-C_G S_G},\qquad \frac{\partial F_G}{\partial C_G}=\frac{1-S_G}{(1-C_GS_G)^2}>0,
+\label{eq:within}
+\end{equation}
+so $F_G$ rises whenever coarse correctness rises, even if sibling discrimination is unchanged. We therefore test coarse benefit on $C_G$ and interference on $S_G$, and report $F_G$ only descriptively.
+
+Each outcome is computed in two frames. In the \emph{true frame}, $G$ is the curated hierarchy for every model. In the \emph{own frame}, $G$ is the partition the model was trained with, and the outcome is compared with CE-B evaluated on the same $G$. The own frame removes the advantage True-Hier would otherwise have by being the only condition trained on the curated groups.
+
+\subsection{Hypotheses}
+Let $T(G)$ denote a partition-level outcome: the seed-averaged, seed-paired difference between the model trained with $G$ and CE-B. We test three hypotheses, each with one primary outcome.
+\begin{itemize}
+  \item \textbf{H1 (coarse semantic benefit).} The curated hierarchy's own-frame gain in coarse correctness, $T_{C}(G_{\mathrm{true}})$, exceeds the value predicted for a partition with the same within-group similarity.
+  \item \textbf{H2 (fine-grained interference).} The curated hierarchy lowers own-frame sibling discrimination, $T_{S}(G_{\mathrm{true}})<0$.
+  \item \textbf{H3 (prior $\times$ data scale).} The similarity-adjusted residual of the curated hierarchy on overall fine accuracy is larger at the 10\% budget than at the 100\% budget. The rationale is that a fixed prior should matter more when the data term is weaker, not that the hierarchy supplies extra labels.
+\end{itemize}
+
+\subsection{Conditions}
+All conditions share a CIFAR-style ResNet-18 \cite{he2016resnet} and the CIFAR-100 fine labels (Table~\ref{tab:interventions}). CE-A and CE-B are independent cross-entropy models used for difficulty strata and as the baseline (Section~\ref{sec:strata}). True-Hier is the treatment. Random-Hier and Spectrum-Hier are families of matched partitions. Flat-Aux controls for generic deep supervision \cite{lee2015dsn}. Final-Hier attaches the curated coarse head only to the last stage and isolates placement.
+
+\begin{table}[t]
+\caption{Conditions. Auxiliary heads are global average pooling followed by a linear layer, attached at the outputs of the indicated ResNet stages.}
+\label{tab:interventions}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{1.45cm}}
+\toprule
+Condition & Auxiliary labels & Heads at \\
+\midrule
+CE-A, CE-B & None & None \\
+True-Hier & Curated 20 superclasses & Stages 2, 3 \\
+Random-Hier & 19 balanced random partitions & Stages 2, 3 \\
+Spectrum-Hier & 19 balanced partitions spanning $W(G)$ & Stages 2, 3 \\
+Flat-Aux & 100 fine labels & Stages 2, 3 \\
+Final-Hier & Curated 20 superclasses & Stage 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Within-Group Similarity and Matched Partitions}
+\label{sec:spectrum}
+Grouping visually similar classes asks the auxiliary heads to merge the classes that are hardest to separate, which is where interference is most plausible. A single visual-clustering control therefore confounds ``semantic'' with ``less similar within groups''. We make similarity an explicit axis. Let $\phi$ be a fixed feature extractor and $\mu_c$ the mean normalized feature of class $c$. For a partition $G=\{g_1,\ldots,g_{20}\}$,
+\begin{equation}
+W(G)=\frac{1}{20}\sum_{k=1}^{20}\frac{1}{10}\sum_{\substack{c,c'\in g_k\\ c<c'}}\cos(\mu_c,\mu_{c'}).
+\label{eq:w}
+\end{equation}
+Spectrum-Hier contains 19 balanced partitions whose $W$ values are spread evenly between the minimum and maximum reachable by swap-based local search. The maximum is a balanced visual clustering, and the minimum is an ``anti-visual'' partition. Random-Hier contains 19 balanced partitions drawn uniformly at random. We report the adjusted Rand index between the curated hierarchy and every other partition.
+
+\textbf{Extractor and label budget.} For constructing partitions used in training, $\phi$ is a SimCLR ResNet-18 \cite{chen2020simclr} trained without labels on the training images of the current budget, and class means use only that budget's labels. No condition therefore uses labels outside its budget. For \emph{measuring} $W$ in analysis, we use one fixed extractor of the same kind trained on the 45,000 images of the training and validation pools, so that $W$ is comparable across budgets. The audit pool (Section~\ref{sec:experiments}) is excluded.
+
+\subsection{Training}
+For auxiliary conditions the objective is
+\begin{equation}
+\mathcal{L}=\mathcal{L}_{\mathrm{fine}}+\sum_{s\in\mathcal{S}}\lambda_s\,\mathcal{L}_{\mathrm{aux},s},
+\label{eq:objective}
+\end{equation}
+where $\mathcal{S}$ is the set of stages with heads. The contribution of this work is the controlled analysis of grouping content and placement, not this loss. Initial losses differ between 20-way and 100-way heads ($\ln 20\approx 3.0$ versus $\ln 100\approx 4.6$), so a shared $\lambda$ would imply different gradient magnitudes. We instead set $\lambda_s$ so that the auxiliary gradient norm at the attached stage equals $\rho$ times the fine-loss gradient norm there, estimated over the first epoch and then held fixed. The ratio $\rho$ is chosen from $\{0.25,0.5,1\}$ once, in a pilot at the 100\% budget, and shared by all auxiliary conditions and budgets. Results for all three values are reported as a sensitivity analysis.
+
+This replaces per-method selection of $\lambda$ on validation data. At the 10\% budget the validation split has 500 images, five per class, and the binomial standard error of validation accuracy near 40\% is about 2.2 points, too large to separate configurations reliably.
+
+Training uses SGD with Nesterov momentum 0.9, batch size 128, initial learning rate 0.1 with cosine decay, 200 epochs, random crop with 4-pixel padding, and horizontal flips. Weight decay is selected per budget from $\{10^{-4},5\times10^{-4},10^{-3}\}$ using CE alone on that budget's validation split, then shared by all conditions at that budget.
+
+\subsection{Independent Difficulty Strata with Cross-Fitting}
+\label{sec:strata}
+Selecting hard examples with a model and then re-evaluating them with a second model produces apparent improvement through regression to the mean. We train five CE seeds per budget. In each of five folds, one CE seed serves as the reference CE-A and defines strata on the test set, and the remaining CE seeds serve as CE-B. Every other model is evaluated on the same strata. The hard stratum is the 25\% of test examples with the lowest CE-A true-class probability. For a metric $M$ on that stratum,
+\begin{equation}
+\begin{aligned}
+\Delta_{\mathrm{null}} &= M(\cond{CE-B})-M(\cond{CE-A}),\\
+\Delta_{G} &= M(\text{model trained with } G)-M(\cond{CE-B}).
+\end{aligned}
+\label{eq:independent-null}
+\end{equation}
+$\Delta_{\mathrm{null}}$ estimates the regression-to-the-mean artifact; $\Delta_G$ is the intervention effect. Results are averaged over the five folds. We also report outcomes as a continuous function of CE-A true-class probability, so that conclusions do not depend on the 25\% cut-off. Because the hard stratum is enriched for test-label errors \cite{northcutt2021labelerrors}, we repeat hard-stratum analyses after removing examples flagged as mislabeled.
+
+Overall fine accuracy and the factorized outcomes are computed on the full test set and are the primary outcomes. Hard-stratum results are secondary.
+
+\subsection{Representation Measures}
+Auxiliary heads train the layers they attach to. Fine-class probes at those layers measure where supervision was applied as much as where information becomes accessible, so we treat probe results at stages with heads as \emph{manipulation checks}. Representation outcomes are interpreted only at blocks that receive no direct auxiliary loss.
+
+For each of the eight residual blocks we compute globally average-pooled features and two probes: a cosine k-nearest-neighbor probe with $k=20$, and a linear probe trained on frozen features. Both use one fixed reference set: the 4,000 training images of the 10\% budget, which are contained in every larger budget because budgets are nested. Probe accuracy therefore does not change with budget merely because the neighbor set grows. We report fine-class accuracy, coarse-class accuracy in both frames, and true-class neighbor purity, the fraction of the $k$ neighbors sharing the ground-truth fine label.
+
+Prediction depth \cite{baldock2021difficulty} is
+\begin{equation}
+\operatorname{PD}(x)=\min\left\{\ell\in\{1,\ldots,9\}:\hat y^{(j)}(x)=\hat y^{(9)}(x)\;\forall j\geq\ell\right\},
+\label{eq:pd}
+\end{equation}
+where $\hat y^{(1)},\ldots,\hat y^{(8)}$ are k-NN probe predictions and $\hat y^{(9)}$ is the trained classifier's prediction. PD is mechanically lowered by supervision at intermediate blocks, Flat-Aux most of all, so it is a secondary, descriptive outcome. We report its full distribution rather than its mean, since early-block probes on 100 classes are close to chance and PD concentrates at high depths.
+
+\section{Experimental Design}
+\label{sec:experiments}
+
+\subsection{Labeled-Data Budgets}
+We split CIFAR-100's 50,000 official training images once, stratified by class, into a training pool of 40,000 images (400 per class), a validation pool of 5,000 (50 per class), and an audit pool of 5,000 (50 per class). This split is shared with a companion privacy study, which uses the audit pool as never-trained nonmembers. No model, extractor or partition in this study uses the audit pool. A budget $\beta$ takes the same fraction $\beta$ of the training pool and of the validation pool (Table~\ref{tab:budgets}), so validation is one ninth of the labeled budget at every $\beta$ and counts toward it. Budgets are nested, and the 100\% budget uses 45,000 labeled images. Primary comparisons use a fixed number of epochs, so that every method sees the same images the same number of times. A fixed-step sensitivity analysis separates label scarcity from optimization exposure for the H3 interaction.
+
+\begin{table}[t]
+\caption{Labeled-data budgets.}
+\label{tab:budgets}
+\centering
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+Total budget & Training & Validation \\
+\midrule
+10\%  & 4,000  & 500 \\
+25\%  & 10,000 & 1,250 \\
+50\%  & 20,000 & 2,500 \\
+100\% & 40,000 & 5,000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Pre-registered Diagnostics}
+Before the main experiments we run three inexpensive checks.
+\begin{enumerate}
+  \item \textbf{Partition geometry.} Compute $W$ for the curated hierarchy and all candidate partitions, and the adjusted Rand index between the curated hierarchy and the most similar partition. If the curated hierarchy lies at the visual extreme, H1 has little room for a residual.
+  \item \textbf{Baseline factors.} From CE models at the 25\% and 100\% budgets, compute $C_G$ and $S_G$ in the true frame, to show how much headroom each factor has.
+  \item \textbf{Variance pilot.} At the 25\% budget, train three seeds for CE, True-Hier, and five random partitions. Estimate seed variance and partition variance, and confirm that 19 partitions and three seeds per partition give adequate power for a 1-point effect on overall accuracy. If not, we increase the number of partitions before the number of seeds.
+\end{enumerate}
+
+\subsection{Confirmatory Experiments}
+\textbf{Experiment A: semantic versus matched partitions.} At the 25\% and 100\% budgets, train True-Hier, all Random-Hier and Spectrum-Hier partitions, Flat-Aux, and Final-Hier with three seeds each, and CE with five seeds. Primary outcomes are $T_C$ for H1 and $T_S$ for H2 in the own frame, and overall accuracy.
+
+\textbf{Experiment B: prior $\times$ data scale.} At all four budgets, train True-Hier, CE, and a subset of 9 Random-Hier and 9 Spectrum-Hier partitions chosen to cover the range of $W$. The primary outcome is the similarity-adjusted residual of True-Hier on overall accuracy at each budget (Section~\ref{sec:inference}), and the H3 contrast is its difference between the 10\% and 100\% budgets.
+
+\textbf{Experiment C: representation analysis.} For the Experiment A models, compute the probes of the previous section at all eight blocks. Results at supervised stages are reported as manipulation checks; results at unsupervised blocks and the final factorized outcomes support mechanistic interpretation.
+
+\textbf{Replication: iNat-100.} To test a dataset with a deeper taxonomy and finer visual distinctions, we build iNat-100 from iNaturalist 2018 \cite{vanhorn2018inat}: five species from each of 20 genera, images resized to $64\times64$, with genus as the curated grouping. Experiment A is repeated at the 25\% and 100\% budgets with 9 random and 9 spectrum partitions.
+
+\subsection{Inference and Decision Rules}
+\label{sec:inference}
+\textbf{Rank test.} For a partition-level outcome $T$, the rank $p$-value of the curated hierarchy among the $R=19$ random partitions is
+\begin{equation}
+p=\frac{1+\#\{r: T(G_r)\geq T(G_{\mathrm{true}})\}}{R+1},
+\label{eq:rank}
+\end{equation}
+whose minimum is 0.05. This describes where the curated hierarchy falls among typical balanced partitions. It is descriptive rather than confirmatory: the curated hierarchy is not an exchangeable draw from the random generator, and with $R=19$ the rank test cannot reach the Holm thresholds below. The confirmatory test of H1 is the residual below.
+
+\textbf{Similarity-adjusted residual.} Over all non-curated partitions, we fit $T(G)=a+b\,W(G)+\varepsilon$ and compute the residual
+\begin{equation}
+\delta=T(G_{\mathrm{true}})-\big(\hat a+\hat b\,W(G_{\mathrm{true}})\big),
+\label{eq:residual}
+\end{equation}
+with a 95\% prediction interval. H1 is supported if the interval for $\delta$ on $T_C$ excludes zero from above. A quadratic fit is reported as a sensitivity analysis. For H3 we compute $\delta$ at each budget and test $\delta_{10\%}-\delta_{100\%}$ by bootstrap over partitions and seeds.
+
+\textbf{Multiplicity and effect size.} The three primary tests (H1 on $T_C$, H2 on $T_S$, H3 on accuracy residuals) are corrected with the Holm procedure. All other outcomes are exploratory. Seed-level variation is handled by pairing each model with CE-B runs that share the data subset and initialization seed. An effect below one point of overall accuracy is reported but not treated as a headline result unless accompanied by a corresponding change in $C$ or $S$.
+
+\subsection{Exploratory Extensions}
+Long-tailed CIFAR-100, 10- and 50-group partitions, confusion-derived hierarchies, and pretrained backbones are exploratory. Long-tailed analyses compare tail classes that have head-class siblings with tail classes whose whole superclass is under-represented, and include a logit-adjustment baseline. A semi-supervised variant gives fine labels on the budget and coarse labels on additional images. This is the setting in which a hierarchy does supply extra labeled information, and it is analyzed separately from H3.
+
+\section{Discussion}
+The protocol tests whether curated semantic hierarchies differ from matched partitions in how they shape learning, rather than whether hierarchies help in general. Treating the partition as the unit of inference makes a positive result specific to the curated grouping, and the similarity axis separates semantic content from within-group visual similarity. The factorization lets a coarse benefit and a fine-level cost appear together, which is a plausible outcome given that the auxiliary heads merge sibling classes at intermediate layers. A null result would indicate that, in this setting, the curated hierarchy acts like any balanced partition with comparable within-group similarity. The study is limited to small backbones trained from scratch at low resolution, to balanced partitions, and to linear auxiliary heads; deeper heads, pretrained models, and unbalanced taxonomies may behave differently.
+
+\begin{thebibliography}{99}
+\bibitem{lee2015dsn} C.-Y. Lee, S. Xie, P. Gallagher, Z. Zhang, and Z. Tu, ``Deeply-supervised nets,'' in \emph{Proc. AISTATS}, 2015.
+\bibitem{yan2015hdcnn} Z. Yan, H. Zhang, R. Piramuthu, V. Jagadeesh, D. DeCoste, W. Di, and Y. Yu, ``HD-CNN: Hierarchical deep convolutional neural network for large scale visual recognition,'' in \emph{Proc. ICCV}, 2015.
+\bibitem{zhu2017bcnn} X. Zhu and M. Bain, ``B-CNN: Branch convolutional neural network for hierarchical classification,'' arXiv:1709.09890, 2017.
+\bibitem{bertinetto2020mistakes} L. Bertinetto, R. Mueller, K. Tertikas, S. Samangooei, and N. A. Lord, ``Making better mistakes: Leveraging class hierarchies with deep networks,'' in \emph{Proc. CVPR}, 2020.
+\bibitem{zhang2022labels} S. Zhang, R. Xu, C. Xiong, and C. Ramaiah, ``Use all the labels: A hierarchical multi-label contrastive learning framework,'' in \emph{Proc. CVPR}, 2022.
+\bibitem{bengio2010trees} S. Bengio, J. Weston, and D. Grangier, ``Label embedding trees for large multi-class tasks,'' in \emph{Proc. NeurIPS}, 2010.
+\bibitem{baldock2021difficulty} R. J. N. Baldock, H. Maennel, and B. Neyshabur, ``Deep learning through the lens of example difficulty,'' in \emph{Proc. NeurIPS}, 2021.
+\bibitem{northcutt2021labelerrors} C. G. Northcutt, A. Athalye, and J. Mueller, ``Pervasive label errors in test sets destabilize machine learning benchmarks,'' in \emph{Proc. NeurIPS Datasets and Benchmarks Track}, 2021.
+\bibitem{krizhevsky2009cifar} A. Krizhevsky, ``Learning multiple layers of features from tiny images,'' Univ. of Toronto, Tech. Rep., 2009.
+\bibitem{he2016resnet} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \emph{Proc. CVPR}, 2016.
+\bibitem{chen2020simclr} T. Chen, S. Kornblith, M. Norouzi, and G. Hinton, ``A simple framework for contrastive learning of visual representations,'' in \emph{Proc. ICML}, 2020.
+\bibitem{vanhorn2018inat} G. Van Horn, O. Mac Aodha, Y. Song, Y. Cui, C. Sun, A. Shepard, H. Adam, P. Perona, and S. Belongie, ``The iNaturalist species classification and detection dataset,'' in \emph{Proc. CVPR}, 2018.
+\end{thebibliography}
+
+\end{document}

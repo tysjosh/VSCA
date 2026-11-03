@@ -1,0 +1,11 @@
+# iNat-100 repetition (Appendix inat): Study A contrast of CE, True-Hier and the 4 + 4 subset at beta = 100%, M = 16.
+# Use after base.yaml. Companion iNat artifacts (sg inat_build, simclr, partitions) must exist under companion_dir.
+dataset: inat100
+inat_seed: 0
+inat_per_class: 300
+inat_test_per_class: 50
+inat_size: 64
+privacy_budgets: [1.0]
+studyB_budget: null   # no Study B on iNat-100
+studyA_conditions: [ce, true_hier, subset]
+M: 16

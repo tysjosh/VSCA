@@ -1,0 +1,9 @@
+# iNat-100 (Section IV-C, D13): 20 genera x 5 species, 300 pool + 50 test images per species at 64x64.
+# Build first with `sg inat_build --inat_root DIR` (writes data/inat100/inat100.npz + meta.json).
+dataset: inat100
+data_dir: data
+inat_seed: 0
+inat_per_class: 300
+inat_test_per_class: 50
+inat_size: 64
+crop_pad: 4

@@ -1,0 +1,15 @@
+# Tiny end-to-end check that every code path runs (not a scientific run). CPU only.
+device: cpu
+amp: false
+num_workers: 0
+limit_train_per_class: 2
+limit_val_per_class: 1
+limit_test: 300
+epochs: 1
+batch_size: 64
+simclr_epochs: 1
+simclr_batch_size: 64
+search_iters: 2000
+search_restarts: 2
+probe_linear_iters: 20
+save_model: false

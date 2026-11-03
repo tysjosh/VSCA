@@ -1,0 +1,256 @@
+\documentclass{article}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,mathtools,amsthm}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{icml2025}
+
+\newcommand{\vsca}{\textsc{VSCA}}
+\newcommand{\ind}{\mathbb{I}}
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\dataset}{\mathcal{D}}
+\newcommand{\claims}{\mathcal{C}}
+\newcommand{\vocab}{\mathcal{V}}
+\newcommand{\acc}{A}
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\icmltitlerunning{VSCA}
+
+\begin{document}
+\twocolumn[
+\icmltitle{Verifiable Semantic Credit Assignment for Language Model Post-Training}
+\begin{icmlauthorlist}
+\icmlauthor{Anonymous Author(s)}{anon}
+\end{icmlauthorlist}
+\icmlaffiliation{anon}{Anonymous Institution}
+\icmlcorrespondingauthor{Anonymous Author(s)}{anonymous@anonymous.com}
+\icmlkeywords{language model post-training, credit assignment, verification, mathematical reasoning, supervised fine-tuning}
+\vskip 0.3in
+]
+\printAffiliationsAndNotice{}
+\makeatletter
+\chead{\small\bfseries VSCA}
+\makeatother
+
+\begin{abstract}
+Supervised fine-tuning (SFT) trains a model to put all probability on the reference token at every position. It therefore penalizes an alternative that would leave the response correct exactly as much as one that would make it wrong. Recent token-selection methods change which positions receive loss, using loss differences, update influence, or attention, but none of these signals records whether a deviation changes correctness. We propose Verifiable Semantic Credit Assignment (\vsca) for tasks with reliable verifiers. At selected positions, \vsca{} takes the model's own high-probability alternatives and accepts one only when a verifier certifies a correct completion from it, either by re-checking the affected claim or by verifying a full rollout. Training maximizes the probability of the accepted set rather than of the reference token alone. This objective is the log of one-step expected verified correctness under teacher forcing. Its gradient vanishes when the model's mass already lies on accepted tokens and scales with the mass on the rest. It recovers SFT when nothing is certified and selective SFT when unselected positions accept every token. Because certificates are positive only, incomplete search moves the objective toward SFT rather than toward error. We specify an evaluation on GSM8K, SVAMP, and ProofWriter with two backbones, compute-matched baselines that include rejection-sampling fine-tuning on the same rollouts, and diagnostics that can falsify the premise before full training.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+Supervised fine-tuning (SFT) adapts pretrained language models to instruction following, factual question answering, and mathematical reasoning by minimizing negative log-likelihood over every target token. At each position the target is a single reference token. Any other token is treated as an error, whether it would make the response wrong or would leave it correct.
+
+Consider the claim ``Paris is the capital of France.'' Replacing \emph{Paris} with \emph{Lyon} makes the statement false; replacing ``is the capital of'' with ``serves as the capital of'' does not. Cross-entropy pushes both alternatives down in proportion to their probability. In multi-step reasoning the same issue is sharper. A solution can compute the same quantities in a different order, name an intermediate value differently, or take a different but valid step, and each of these is penalized as if it were a mistake. \citet{beyondTokens} make the same observation for general language modeling and train against concept-level targets.
+
+A growing line of work changes how SFT allocates loss across tokens. Rho-1 selects tokens by excess loss against a reference model \citep{rho1}; Token Cleaning filters tokens by update influence \citep{tokenCleaning}; ssToken combines historical loss with attention-based importance \citep{ssToken}; TrimSFT reweights by the gap between the gold logit and its strongest competitor \citep{trimSFT}. These methods decide \emph{where} loss is applied. None of them changes \emph{what} counts as correct at a position, and none of their signals measures whether a deviation changes the task outcome.
+
+We ask a narrower question for tasks with reliable verifiers: if the training target at a position is the set of tokens from which a verified-correct response is reachable, rather than the reference token alone, does post-training improve? We call the resulting method Verifiable Semantic Credit Assignment (\vsca). At selected positions, \vsca{} proposes the model's own top alternatives, asks a verifier for a certificate that each one can still lead to a correct response, and maximizes the probability of the certified set.
+
+An earlier version of this proposal scored claims by whether a hand-made counterfactual (for example $84\rightarrow 85$) failed verification and used the score to select tokens for loss. \Cref{sec:why-not} explains why that score is nearly constant under every verifier we could use, and why hand-made negatives are the wrong distribution for credit assignment. The present formulation replaces both the selection score and the pairwise contrastive term with one objective derived from expected correctness.
+
+This paper makes four proposed contributions:
+\begin{itemize}
+  \item a set-valued, verifier-certified training target, shown to be the log of one-step expected verified correctness, with a gradient characterization that makes its credit assignment explicit (\cref{prop:gradient,prop:expected});
+  \item a single view in which SFT, selective token SFT, and unlikelihood-style negatives are special cases, and an analysis of why binary counterfactual scores degenerate (\cref{prop:special,sec:why-not});
+  \item a certificate procedure (local claim re-checking and verified rollouts) whose errors are one-sided, so that incomplete search degrades toward SFT (\cref{prop:conservative}); and
+  \item an evaluation protocol with pre-registered diagnostics, compute-matched baselines, and a power analysis (\cref{sec:experiments}).
+\end{itemize}
+This is a proposal. No experimental results are reported, and none are implied.
+
+\section{Related Work}
+\label{sec:related}
+\paragraph{Token-level selection and weighting in SFT.} Rho-1 trains only on tokens with high excess loss relative to a reference model \citep{rho1}. Token Cleaning treats low-quality tokens as label noise and filters them by update influence \citep{tokenCleaning}. ssToken replaces the reference model with historical checkpoints and adds attention-based semantic importance \citep{ssToken}. TrimSFT applies a Gaussian weight on the gold-versus-competitor logit gap and reports gains on mathematical reasoning \citep{trimSFT}. All four keep the single-token target and change per-position weights. \vsca{} keeps unit weights and changes the target set.
+
+\paragraph{Outcome-critical tokens and process supervision.} cDPO identifies \emph{critical tokens} in GSM8K and MATH reasoning, tokens after which the model tends to fail, and rewards them with token-level preference optimization \citep{cdpo}. Process reward models judge intermediate steps from human labels \citep{lightman} or Monte Carlo rollouts \citep{mathShepherd}, and VinePPO uses rollouts from intermediate states for value estimation in RL \citep{vineppo}. PRIME derives implicit process rewards from outcome labels \citep{prime}. Work on high-entropy ``forking'' tokens finds that RL gains concentrate on a small minority of positions \citep{forkingTokens}. \vsca{} uses the same rollout-based evidence, but inside a supervised objective on reference data, and it uses the evidence to accept alternatives rather than to score or penalize the reference path.
+
+\paragraph{Negatives, preferences, and equivalence.} Unlikelihood training lowers the probability of specified negative tokens \citep{unlikelihood}. Step-DPO builds step-level preference pairs from a correct and a minimally different incorrect step \citep{stepDPO}. SimPO uses length-normalized, reference-free pairwise objectives \citep{simpo}, and such objectives can lower the probability of the preferred response along with the rejected one \citep{likelihoodDisplacement}. Concept-level objectives group surface forms of one meaning into a shared target \citep{beyondTokens}. \vsca{} is closest to this last idea, with equivalence defined by a task verifier instead of a lexical or embedding grouping.
+
+\paragraph{Training on verified self-generated data.} STaR and rejection-sampling fine-tuning (RFT) sample solutions, keep the verified ones, and train on them \citep{star,rft}. Because \vsca{} also spends compute on verified rollouts, RFT on the same rollouts is a necessary compute-matched baseline (\cref{sec:baselines}).
+
+\section{Verifiable Semantic Credit Assignment}
+\label{sec:method}
+
+\subsection{Setup}
+We consider instruction--response--evidence triples $\dataset=\{(x_i,y_i,E_i)\}_{i=1}^{N}$, where $y_i=(y_{i,1},\ldots,y_{i,T_i})$ is a reference response and $E_i$ is task evidence (a gold answer, a knowledge source, or a formal theory). Let $h_{i,t}=(x_i,y_{i,<t})$ be the reference prefix, $g_{i,t}=y_{i,t}$ the reference token, and $\pi_{i,t}=p_\theta(\cdot\mid h_{i,t})$ the model's next-token distribution over vocabulary $\vocab$. We drop the example index when it is clear. Standard SFT minimizes
+\begin{equation}
+ \loss_{\mathrm{SFT}}=-\frac{1}{\sum_iT_i}\sum_{i=1}^{N}\sum_{t=1}^{T_i}\log \pi_{i,t}(g_{i,t}).
+ \label{eq:sft}
+\end{equation}
+
+\paragraph{Verifiers.} We separate two verifiers. A \emph{claim verifier} $V_{\mathrm{c}}(c,x,E)\in\{1,0,\bot\}$ checks one atomic claim $c$, such as an arithmetic equality or a derived fact, where $\bot$ means undetermined. A \emph{response verifier} $V_{\mathrm{r}}(x,y,E)\in\{1,0\}$ accepts a complete response only if its final answer matches $E$ \emph{and} every extracted claim in it has $V_{\mathrm{c}}=1$. Requiring valid intermediate claims limits responses that reach the right answer by luck. We assume $V_{\mathrm{r}}(x_i,y_i,E_i)=1$ for every training reference; references that fail are removed and the removal rate is reported.
+
+\subsection{Certified Acceptance Sets}
+\label{sec:acceptance}
+For a position $t$ and a candidate token $a\in\vocab$, a \emph{certificate} is a completion $w$ such that $V_{\mathrm{r}}(x, y_{<t}\oplus a\oplus w, E)=1$. The reference suffix certifies $g_t$. The certified acceptance set is
+\begin{equation}
+\begin{aligned}
+ \acc_t=\{g_t\}\cup\{a\in C_t :{}& \exists\, w\in W_t(a),\\
+ &V_{\mathrm{r}}(x,y_{<t}\oplus a\oplus w,E)=1\},
+\end{aligned}
+ \label{eq:acceptance}
+\end{equation}
+where $C_t$ is a finite candidate set and $W_t(a)$ is a finite set of completions searched for $a$. The definition uses only positive evidence: a token enters $\acc_t$ when a certificate is found and is otherwise treated exactly as SFT treats it. We never need to prove that an alternative is wrong.
+
+\paragraph{Candidates.} $C_t$ contains the top-$k$ tokens other than $g_t$ under a snapshot $\bar\theta$ of the model, refreshed every $R$ optimizer steps. Candidates therefore follow the model's own error distribution rather than a hand-designed perturbation (\cref{sec:why-not}).
+
+\paragraph{Completions.} We use two kinds of completions.
+\begin{itemize}
+  \item \textbf{Local certificates} (claim positions). If $t$ lies inside an extracted claim span, we complete the span greedily under $\bar\theta$ from $y_{<t}\oplus a$, re-check the resulting claim with $V_{\mathrm{c}}$ and its equality with the reference claim's value, and append the reference suffix. This certifies equivalent forms of the same claim at negligible cost.
+  \item \textbf{Rollout certificates} (decision positions). For positions outside claim spans, $W_t(a)$ is $M$ sampled continuations from $y_{<t}\oplus a$ under $\bar\theta$, each checked with $V_{\mathrm{r}}$. A single verified continuation certifies $a$.
+\end{itemize}
+
+\paragraph{Which positions are searched.} Claim positions are all tokens inside spans whose claim has $V_{\mathrm{c}}=1$; spans are aligned through tokenizer offsets and kept whole. Decision positions are the at most $B$ positions per response, outside claims, with the highest snapshot entropy $H(\bar\pi_t)$ above a threshold $H_{\min}$. Entropy targeting follows from \cref{prop:gradient}: if $\pi_t(g_t)\approx 1$, adding alternatives to $\acc_t$ changes neither the loss nor its gradient, so search effort is only useful where the model spreads its mass. All other positions use $\acc_t=\{g_t\}$.
+
+\subsection{Objective}
+\vsca{} maximizes the probability of the certified set:
+\begin{equation}
+ \loss_{\mathrm{VSCA}}=-\frac{1}{\sum_iT_i}\sum_{i=1}^{N}\sum_{t=1}^{T_i}\log \sum_{a\in \acc_{i,t}}\pi_{i,t}(a).
+ \label{eq:vsca}
+\end{equation}
+The sets $\acc_{i,t}$ are fixed during each update. The normalization is over all target tokens, as in \cref{eq:sft}, so per-token gradient scale does not depend on how many positions are searched. All tokens stay in context; the objective changes the target at each position, not the sequence computation.
+
+\begin{proposition}[Gradient]
+\label{prop:gradient}
+Let $z\in\mathbb{R}^{|\vocab|}$ be the logits at position $t$, $\pi=\mathrm{softmax}(z)$, $\acc=\acc_t$, and $\ell_t=-\log\pi(\acc)$. Then
+\[
+\frac{\partial \ell_t}{\partial z_b}=\pi(b)-\ind[b\in \acc]\,\frac{\pi(b)}{\pi(\acc)},
+\qquad
+\Big\|\frac{\partial \ell_t}{\partial z}\Big\|_1=2\,\big(1-\pi(\acc)\big).
+\]
+\end{proposition}
+\begin{proof}
+$\ell_t=-\log\sum_{a\in \acc}e^{z_a}+\log\sum_{b\in\vocab}e^{z_b}$; differentiating gives the first identity. The entries are $\pi(b)\geq 0$ for $b\notin \acc$, summing to $1-\pi(\acc)$, and $\pi(b)(1-1/\pi(\acc))\leq 0$ for $b\in \acc$, whose absolute values sum to $1-\pi(\acc)$.
+\end{proof}
+
+\Cref{prop:gradient} states the credit assignment. A token outside $\acc_t$ is pushed down exactly as under SFT. Tokens inside $\acc_t$ are pushed up together, in proportion to their current probability, so the model keeps whichever valid form it already prefers. The size of the update at position $t$ is the probability mass the model puts on uncertified tokens, $1-\pi_t(\acc_t)$. Under SFT the corresponding quantity is $1-\pi_t(g_t)$, which includes mass on valid alternatives. Positions where the model hesitates only between valid options therefore receive no gradient under \vsca, and positions where it puts mass on uncertified tokens keep their full SFT gradient on those tokens.
+
+\begin{proposition}[Expected correctness]
+\label{prop:expected}
+Let $Q_t(a)=\ind[a\in \acc_t]$ and $J_t=\sum_{a}\pi_t(a)Q_t(a)$, the probability under teacher forcing that the model's next token at $t$ has a certified correct completion. Then $\ell_t=-\log J_t$, and $\sum_t\ell_t=-\log\prod_tJ_t$, where $\prod_t J_t$ is the probability that the model chooses a certified token at every reference prefix.
+\end{proposition}
+The proof is immediate from \cref{eq:vsca}. Note that $\nabla_z J_t$ has entries $\pi(b)(Q_t(b)-J_t)$, so its direct maximization assigns the same credit as \cref{prop:gradient} scaled by $J_t$. We use the log form because it reduces to cross-entropy.
+
+\begin{proposition}[Special cases]
+\label{prop:special}
+(a) If $\acc_t=\{g_t\}$ for all $t$, \cref{eq:vsca} equals \cref{eq:sft}. (b) If $\acc_t=\vocab$ for $t\notin S$ and $\acc_t=\{g_t\}$ for $t\in S$, \cref{eq:vsca} is selective SFT on the positions $S$, normalized by all target tokens. (c) For $b\notin\acc_t$, the gradient on $z_b$ is $\pi_t(b)$, the same push-down as SFT; unlikelihood training on a single designated negative $b^-$ adds extra push-down on $b^-$ only.
+\end{proposition}
+Case (b) makes explicit what token-selection methods assume: an unselected position is treated as if every token were acceptable, without any evidence. \vsca{} replaces this assumption with a set supported by certificates.
+
+\begin{proposition}[One-sided errors]
+\label{prop:conservative}
+Let $\acc^*_t$ be the set of all tokens with a correct completion. If every certificate is sound, so that $\acc_t\subseteq \acc^*_t$, then $-\log\pi_t(\acc^*_t)\leq \ell_t\leq -\log\pi_t(g_t)$.
+\end{proposition}
+\begin{proof}
+$\{g_t\}\subseteq \acc_t\subseteq \acc^*_t$ and $-\log\pi(\cdot)$ is monotone decreasing in the set.
+\end{proof}
+Missed certificates move \vsca{} toward SFT. False certificates do the opposite and reward invalid tokens. Verifier \emph{precision} is therefore the property that matters, and we measure it directly through a manual audit and a false-acceptance injection experiment (\cref{sec:ablations}).
+
+\begin{algorithm}[tb]
+\caption{Building certified acceptance sets for one response}
+\label{alg:certify}
+\begin{algorithmic}
+\STATE {\bfseries Input:} $x$, reference $y$, evidence $E$, snapshot $\bar\theta$, $k$, $M$, $B$, $H_{\min}$
+\STATE Extract claims; keep spans with $V_{\mathrm{c}}=1$; align to tokens
+\STATE $P_{\mathrm{claim}}\leftarrow$ tokens inside kept spans
+\STATE $P_{\mathrm{dec}}\leftarrow$ top-$B$ positions outside spans with $H(\bar\pi_t)\geq H_{\min}$
+\FOR{$t=1$ {\bfseries to} $T$}
+\STATE $\acc_t\leftarrow\{g_t\}$
+\IF{$t\in P_{\mathrm{claim}}\cup P_{\mathrm{dec}}$}
+\FOR{$a\in$ top-$k$ of $\bar\pi_t$, $a\neq g_t$}
+\IF{$t\in P_{\mathrm{claim}}$}
+\STATE complete span from $y_{<t}\oplus a$; append reference suffix $\rightarrow \hat y$
+\STATE {\bfseries if} $V_{\mathrm{r}}(x,\hat y,E)=1$ {\bfseries then} add $a$ to $\acc_t$
+\ELSE
+\STATE sample $M$ continuations from $y_{<t}\oplus a$
+\STATE {\bfseries if} any has $V_{\mathrm{r}}=1$ {\bfseries then} add $a$ to $\acc_t$
+\ENDIF
+\ENDFOR
+\ENDIF
+\ENDFOR
+\STATE {\bfseries Return} $\{\acc_t\}_{t=1}^{T}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{What to expect on each task.} On GSM8K, a correct numerical value is usually unique and Qwen2.5 tokenizes numbers digit by digit, so local certificates at claim positions will mostly return $\acc_t=\{g_t\}$, which is SFT. Any effect on GSM8K must come from decision positions, where alternative phrasings, orderings, and valid steps are plausible. On ProofWriter, several derived facts can be valid next steps, so local certificates can be non-trivial. We state this in advance so that a null effect at GSM8K claim positions is not read as a failure of the method.
+
+\paragraph{Cost.} Local certificates cost one greedy span completion and one claim check per candidate. Rollout certificates cost up to $kM$ generations per decision position, so at most $BkM$ per response; with $B=k=M=4$ this is 64 rollouts. Generation and verification run offline once per refresh, and their cost is reported separately from training. Because \vsca{} spends rollout compute, its main comparisons are made at matched end-to-end compute (\cref{sec:metrics}).
+
+\subsection{Why Not Hand-Built Counterfactual Scores}
+\label{sec:why-not}
+The earlier formulation of this proposal assigned each claim a binary score $s=\ind[V(y)=1\wedge V(\tilde y)=0]$, where $\tilde y$ replaces one component of the claim by a hand-built alternative, and selected tokens by $q=\alpha d+(1-\alpha)s+\gamma ds$ with an excess-loss term $d$. Three observations led us to replace it.
+
+\emph{The score is nearly constant.} With a claim-level verifier, changing a component of a true atomic claim makes it false by construction, so $s=1$ for almost every extracted claim and the score reduces to ``a claim was extracted''. With a final-answer verifier and no downstream recomputation, an edited intermediate value leaves the final answer unchanged, so $s=0$ for every intermediate claim and only the answer span scores 1. With recomputation, the edit is no longer minimal and arithmetic chains propagate every change, so $s\approx 1$ again. In each case the score adds little beyond claim-span selection or answer-span selection.
+
+\emph{The negatives come from the wrong distribution.} A hand-made edit measures the verifier's sensitivity to text, which is fixed before training. Credit assignment depends on what the model would actually produce at a position (\cref{prop:gradient}), and that changes during training.
+
+\emph{The selection rule and pairwise loss reduce to simpler objects.} With binary $s$, the score $q$ ranks claim tokens before all other tokens and then orders by $d$, so $\gamma$ only matters near the boundary. The pairwise loss on a single negative, $-\log\sigma\big((S_\theta(z)-S_\theta(\tilde z))/\tau\big)$, is inactive once the model separates the pair: for $p(\text{gold})=0.95$, $p(\text{negative})=0.001$, a two-token span whose first token is shared, and $\tau=1$, the gradient scale is $\sigma(-3.4)\approx 0.03$. These components remain in our experiments as the baseline CF-Select (\cref{sec:baselines}).
+
+\section{Experiments}
+\label{sec:experiments}
+This section specifies a protocol. All results, hyperparameter choices, and compute figures will be reported only after execution.
+
+\subsection{Research Questions}
+\label{sec:experimental-design}
+\textbf{RQ1:} Does \vsca{} improve final-answer accuracy over SFT and token-selection methods at matched compute? \textbf{RQ2:} Which positions carry the effect, claim positions or decision positions? \textbf{RQ3:} Is verification necessary, or would accepting arbitrary high-probability alternatives do as well? \textbf{RQ4:} How sensitive is \vsca{} to false certificates? \textbf{RQ5:} Does \vsca{} change in-domain generalization or general-capability drift relative to SFT?
+
+\subsection{Pre-registered Diagnostics}
+\label{sec:diagnostics}
+Before any comparative training we run four inexpensive checks, each of which can stop or redirect the study.
+\begin{enumerate}
+  \item \textbf{Error taxonomy.} Label 200 base-model failures on the GSM8K validation split as arithmetic slip, wrong quantity or operation, misread problem, or format error. If arithmetic slips dominate, decision positions are unlikely to matter and claim positions should be revisited.
+  \item \textbf{Certified mass.} On a 1{,}000-example sample, report the fraction of searched positions with $|\acc_t|>1$ and the distribution of $\pi_t(\acc_t)-\pi_t(g_t)$ under the base model. If this gap is near zero almost everywhere, \cref{prop:gradient} implies \vsca{} will behave like SFT.
+  \item \textbf{Certificate precision.} Manually audit at least 200 certified alternatives per task family, stratified by local and rollout certificates, and report the false-acceptance rate with a confidence interval.
+  \item \textbf{Earlier score.} Report the distribution of the binary score $s$ from \cref{sec:why-not} over accepted claims, to document the degeneracy argument empirically.
+\end{enumerate}
+
+\subsection{Data and Verification}
+GSM8K \citep{gsm8k} is the primary task; 10\% of the official training split is held out for validation and the official test split is used once, for final evaluation. Reference solutions keep their calculator annotations, which supply arithmetic claims; the claim verifier evaluates each annotation exactly with rational arithmetic, and the response verifier also requires the final answer to match. We report how often an annotation is arithmetically valid but computes the wrong quantity for the problem, which arithmetic checking cannot detect. SVAMP \citep{svamp} tests transfer to perturbed problems; MATH-500 is optional and reported separately.
+
+ProofWriter \citep{proofwriter} is the second task, under the open-world assumption. Claims are derived facts, verified against the supplied theory with a forward-chaining prover; facts that are neither provable nor refutable are $\bot$. Splits are made by theory, and the primary evaluation trains on depth $\leq 3$ and tests on depth 5, since in-distribution accuracy after fine-tuning is close to ceiling.
+
+\subsection{Baselines and Implementation}
+\label{sec:baselines}
+\textbf{Weighting and selection:} full SFT; random token masking; Rho-style excess-loss selection, with the reference model fine-tuned on the same training split and its cost counted; Token Cleaning \citep{tokenCleaning}; ssToken \citep{ssToken}; TrimSFT \citep{trimSFT}; claim-span masking; and claim-span upweighting $w_t=1+\beta\,\ind[t\in P_{\mathrm{claim}}]$. \textbf{Negatives:} SFT plus unlikelihood on uncertified top-$k$ candidates, and CF-Select, the earlier score-based selection with the pairwise loss (\cref{sec:why-not}). \textbf{Same compute, different use:} RFT \citep{rft} trained on all verified rollouts that \vsca{} generated, added to the reference data. This baseline asks whether the rollouts help more as certificates or as extra training samples. \textbf{Preference stage:} cDPO \citep{cdpo} applied after SFT, reported separately because it uses a different data regime.
+
+\textbf{Controls for \vsca:} (i) \emph{uncertified sets}, which accept the same number of top-$k$ candidates per position without verification, isolating the verifier (RQ3); (ii) \emph{shuffled sets}, which permute certified sets between positions with the same entropy bin; (iii) \emph{claim-only} and \emph{decision-only} variants (RQ2).
+
+\textbf{Models and optimization.} Backbones are Qwen2.5-1.5B \citep{qwen25} and Llama-3.2-1B \citep{llama3}. Qwen2.5 has a strong mathematical prior, and a method that reallocates SFT signal may behave differently on a model with a weaker one, so we report both. All methods share data, tokenizer, prompt format, and BF16 LoRA \citep{lora} with rank 16, scaling 32, dropout 0.05, AdamW, cosine decay, maximum length 1{,}024, effective batch size 32, and at most three epochs. Learning rate is tuned per method on the same validation grid $\{5\times10^{-5},10^{-4},2\times10^{-4},4\times10^{-4}\}$, because masking-based methods change the effective per-token step size. \vsca{} uses $k=4$, $M=4$, $B=4$, $R$ equal to one epoch, and $H_{\min}$ chosen on validation from a grid of three values. Test sets are never used for tuning.
+
+\subsection{Budget Controls and Metrics}
+\label{sec:metrics}
+We report two budget views. \emph{Fixed exposure} holds sequences and optimizer steps fixed. \emph{Matched end-to-end compute} counts GPU-hours for reference-model training, candidate generation, rollouts, verification, and student training. Under matched compute, SFT and the selection baselines receive additional epochs, and RFT receives the same rollout budget. Because every method keeps all tokens in context, no method's loss masking is counted as a FLOP saving.
+
+The primary metric is greedy final-answer accuracy with a fixed prompt and generation limit. Secondary metrics are the fraction of fully valid traces under $V_{\mathrm{r}}$, per-claim validity, SVAMP and depth-5 ProofWriter accuracy, and general-capability drift on MMLU and IFEval relative to the base model (RQ5). For \vsca{} we also report $|\acc_t|$ statistics, certified mass $\pi_t(\acc_t)$ over training, and its correlation with held-out errors by position type.
+
+\subsection{Controlled Experiments, Robustness, and Statistics}
+\label{sec:ablations}
+\textbf{Confirmatory comparisons.} On GSM8K, for each backbone: \vsca{} versus SFT, \vsca{} versus claim-span upweighting, and \vsca{} versus RFT at matched compute. All other comparisons are exploratory.
+
+\textbf{Robustness (RQ4).} We inject false certificates by adding uncertified top-$k$ candidates to $\acc_t$ at rates $\eta\in\{0,0.05,0.10,0.20\}$ of searched positions, and report the accuracy curve. \Cref{prop:conservative} predicts monotone degradation with $\eta$ and no degradation from dropping true certificates; we test both by also removing certified alternatives at the same rates.
+
+\textbf{Statistical power.} GSM8K's test split has 1{,}319 items. At about 70\% accuracy the binomial standard error of one run is about 1.3 points, and for paired comparisons with about 10\% discordant items the standard error of the difference is about 0.9 points before seed variance. Gains reported for token-level SFT methods are often 1--3 points. We therefore fix the minimum effect of interest at 1.5 points, estimate seed variance from a five-seed pilot of SFT, and set the number of seeds for confirmatory comparisons from that estimate, with a minimum of five. Tests are paired at the item level (paired bootstrap over items and seeds), with Holm correction across the confirmatory comparisons.
+
+\textbf{Falsifiable predictions.} If verification carries information, \vsca{} should beat the uncertified and shuffled controls. If \vsca{} matches the uncertified control, the gain comes from accepting high-probability alternatives in general, not from verification. If \vsca{} matches RFT at matched compute, the rollouts are equally useful as plain training data. If the certified-mass diagnostic is near zero, we expect \vsca{} to match SFT and will report that outcome as the finding.
+
+\textbf{Reporting.} We release dataset versions and splits, checkpoints, prompts, tokenizer versions, certified sets with their certificates, rejected candidates, audit labels, and all compute logs.
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+\vsca{} is a proposed method and has not been implemented or evaluated. Its scope is limited to tasks where a response verifier exists and is precise. The response verifier checks arithmetic validity and final answers but not whether an intermediate computation is the right one for the problem, so rollout certificates can accept a token from which the model reaches the correct answer through a valid but irrelevant path. Requiring every claim to verify reduces this risk without removing it, which is why certificate precision is measured directly.
+
+The acceptance sets depend on a snapshot of the model and on the search budget, so they are a lower bound on the true valid set. By \cref{prop:conservative} this makes \vsca{} conservative, but it also means a small budget can make \vsca{} indistinguishable from SFT. The objective is a one-step criterion under teacher forcing: it does not model how an accepted deviation changes the distribution of later prefixes, which is the domain of on-policy RL. A positive result would show that verified equivalence is a useful supervised target on these tasks. It would not establish that the model has learned the underlying reasoning.
+
+\section{Conclusion}
+We proposed \vsca, which replaces the single reference token in SFT with a set of tokens certified by a verifier to keep the response correct. The objective is the log of one-step expected verified correctness, its gradient concentrates on mass the model places on uncertified tokens, and it contains SFT and selective SFT as special cases. The evaluation protocol tests whether verification, rather than set-valued targets in general or extra rollout data, is what helps.
+
+\bibliography{example_paper}
+\bibliographystyle{icml2025}
+\end{document}

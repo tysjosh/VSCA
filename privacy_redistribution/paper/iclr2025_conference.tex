@@ -1,0 +1,458 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2025_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage[T1]{fontenc}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+
+% Condition names, as in the companion study.
+\newcommand{\cn}[1]{\textsc{#1}}
+\newcommand{\Gtrue}{G_{\mathrm{true}}}
+\newcommand{\PD}{\operatorname{PD}}
+\newcommand{\Mem}{\operatorname{Mem}}
+\newcommand{\pool}{\mathcal{P}}
+\newcommand{\audit}{\mathcal{A}}
+\newcommand{\valset}{\mathcal{V}}
+\newcommand{\testset}{\mathcal{T}}
+\newcommand{\inset}{\mathcal{M}^{\mathrm{in}}}
+\newcommand{\outset}{\mathcal{M}^{\mathrm{out}}}
+
+\title{Semantic Support and Privacy Redistribution: \\
+How Class Hierarchies Shape Memorization under \\
+Training and Data Deletion}
+
+% Anonymous submission.
+\author{Anonymous authors\\
+Paper under double-blind review}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+Some training examples are classified through features shared with many other examples, and others depend on information specific to themselves. Membership inference exploits the second kind of dependence, and deleting training data can change which remaining examples are exposed. We ask which relationships among training examples explain how memorization and membership vulnerability move when training changes. In CIFAR-100 the superclass is a deterministic function of the fine class, so auxiliary superclass supervision reorganizes the same labeled information without adding labels. This paper builds on a companion study that compares the curated hierarchy with matched random and visually structured partitions; we reuse its split, conditions, partitions, training recipe and outcome definitions, and take its answer to the representation question as given. Study~A measures how hierarchy supervision changes example-level vulnerability under a likelihood-ratio attack whose reference models train on random halves of the pool. Study~B deletes semantically related, visually similar, random or highly vulnerable records, retrains from scratch, and measures the change for retained records. A prediction study tests whether semantic-support features predict those changes beyond visual similarity, class frequency and baseline difficulty. This is a protocol paper: it reports no results and allows positive, negative and null findings.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Neural networks generalize through shared representations, but examples differ in how they use them. Some examples are classified through features shared with many other examples. Others need information that is specific to the example. A model that depends strongly on an individual record can reveal that the record was in its training set. Understanding why models memorize particular examples, and how that changes when training conditions change, is therefore a privacy question as well as a learning question.
+
+Memorization can be necessary for near-optimal generalization on long-tailed data \citep{feldman2020memorization}, it can be estimated per example \citep{feldman2020neural}, and it relates to prediction depth, the earliest layer from which k-nearest-neighbor probes agree with the final prediction \citep{baldock2021difficulty}. These results indicate that memorization depends on how an example relates to the rest of the data, and not only on model capacity or loss. Membership inference turns this dependence into a measurable risk. The likelihood-ratio attack (LiRA) of \citet{carlini2022lira} compares an example's score with score distributions from reference models trained with and without it, and is evaluated at low false-positive rates. \citet{carlini2022onion} show that removing the most vulnerable examples exposes previously safe ones, so vulnerability is relative to the composition of the dataset. \citet{borkar2025ripple} find that adding or removing personal information in language-model training changes how much other personal information is memorized. \citet{cohen2026undeleted} show that mechanisms that emulate perfect retraining after deletion can leak the records that remain. \citet{ebrahimpour2026class} show that class-unlearning evaluations that ignore the geometry of neighboring classes miss leakage about the forgotten class. These results mean that deletion should not be assumed to lower the risk of every remaining example.
+
+The open question is which relationships among training examples explain this redistribution. Semantic relatedness and visual similarity are different relations. Two images can look alike and belong to unrelated categories, and two images from related categories can look different. If records support one another through task-relevant semantic structure, proximity in an embedding space may not describe their contribution fully.
+
+Class hierarchies let us vary semantic organization while holding the labeled information fixed. When the parent label is a deterministic function of the fine label, an auxiliary loss on the parent label adds no label information. Any effect must come from the objective and the structure it imposes. CIFAR-100 \citep{krizhevsky2009cifar} has 100 fine classes grouped into 20 curated superclasses of five. Auxiliary superclass supervision might make some hard examples correct from shallower representations, particularly when labels are few, or it might weaken discrimination between sibling classes. A gain could also come from visual coherence of the groups rather than from their semantics, so the curated hierarchy has to be compared with random and visually coherent partitions of the same size.
+
+A companion study (anonymous, under review) makes that comparison for learning outcomes. It treats the partition as the unit of inference, compares the curated hierarchy with 19 balanced random partitions and 19 partitions spanning within-group visual similarity, factorizes fine accuracy into coarse correctness and sibling discrimination, and estimates difficulty with cross-fitted cross-entropy models. This paper builds on it. We reuse its data split, conditions, partitions, feature extractors, training recipe and outcome definitions without change, and we take its runs as the answer to our first research question. The new parts are a membership-inference design, deletion experiments and a prediction study.
+
+Changes in difficulty do not fix the direction of a privacy change. Easier fitting through shared features could lower vulnerability, or raise it by widening the gap between member and nonmember confidence; auxiliary supervision also changes calibration, generalization and margins. Difficulty and vulnerability therefore have to be measured separately. Likewise, removing semantically related records may reduce shared evidence and make the model rely more on the remaining records, but deletion also changes decision boundaries, class balance and optimization, so an increase in vulnerability after deletion needs controls before it is attributed to lost semantic support. The two interventions are complementary: supervision changes how the model uses semantic relationships with the dataset fixed, and deletion changes which supporting examples are available with the procedure fixed. Each may lower, raise or leave unchanged the vulnerability of a given example, and for supervision accuracy may improve while vulnerability stays the same. We ask four questions.
+
+\begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+  \item \textbf{RQ1 (semantic supervision and difficulty).} Does the curated hierarchy change representation depth and fine-grained correctness of difficult examples beyond arbitrary partitions, visual similarity, or generic auxiliary supervision? The companion study answers RQ1 on the shared split; this paper does not re-test it.
+  \item \textbf{RQ2 (difficulty and membership privacy).} When hierarchy supervision changes difficulty, how does membership vulnerability change, and is the change robust to differences in calibration, generalization and correctness?
+  \item \textbf{RQ3 (semantic support and deletion externalities).} Does removing semantically related training examples change the vulnerability of retained examples differently from removing visually similar or random examples?
+  \item \textbf{RQ4 (predictive value).} Do semantic relationships, defined before any privacy outcome is seen, predict changes in vulnerability beyond visual similarity, class frequency, baseline difficulty and influence-related measures (baseline memorization and baseline vulnerability)?
+\end{itemize}
+
+The planned contributions are: (1) a hierarchy-based framework that varies semantic organization without new labels and is shared item by item with the companion study; (2) an example-level analysis that keeps prediction depth, correctness, memorization and membership vulnerability separate; (3) a deletion study with matched removal sets and retraining from scratch; and (4) a test of semantic support as a predictive signal for privacy change on held-out cohorts and classes. We claim no formal privacy guarantee. The paper is a prospective protocol and reports no results.
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Memorization and privacy.} \citet{feldman2020neural} estimate memorization by training on random subsets; our estimate reuses this idea with the models the attack already needs. LiRA \citep{carlini2022lira} is our primary attack, and the Onion Effect \citep{carlini2022onion} motivates the high-vulnerability deletion condition. Compared with the second-order effects studied by \citet{borkar2025ripple}, \citet{cohen2026undeleted} and \citet{ebrahimpour2026class}, our deletion study asks a narrower empirical question: which removed records matter for which retained records, with retraining from scratch as the reference. Label errors concentrate among hard examples \citep{northcutt2021labelerrors}, which matters for any analysis of difficult or highly vulnerable examples.
+
+\textbf{Hierarchical and deep supervision.} Deeply-supervised nets \citep{lee2015dsn} attach classifiers to intermediate layers; the \cn{Flat-Aux} control is this baseline. HD-CNN \citep{yan2015hdcnn} and B-CNN \citep{zhu2017bcnn} predict coarse classes at intermediate layers and fine classes at the output, which is the structure of the \cn{True-Hier} condition. \citet{bertinetto2020mistakes} show that hierarchy-aware training can trade top-1 accuracy for less severe mistakes, which is why we keep coarse correctness and sibling discrimination separate. The companion study supplies the matched-partition design that this paper reuses.
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Setting, Notation and the Shared Split}
+\label{sec:setting}
+
+Let $\mathcal{Y}=\{1,\ldots,100\}$ be the CIFAR-100 fine classes and $D=\{(x_i,y_i)\}_{i=1}^{n}$ a labeled training set with $y_i\in\mathcal{Y}$. Following the companion study, a \emph{partition} $G$ is a balanced grouping of the 100 classes into 20 groups of five, defined at class level,
+\begin{equation}
+G=\{g_1,\ldots,g_{20}\},\qquad \textstyle\bigcup_k g_k=\mathcal{Y},\quad g_k\cap g_{k'}=\emptyset\ (k\neq k'),\quad |g_k|=5,
+\label{eq:partition}
+\end{equation}
+and $G(y)$ is the group that contains class $y$. The curated superclass partition is $\Gtrue$. Because $G(y_i)$ is a function of $y_i$, auxiliary supervision with any $G$ uses no labels beyond the fine labels.
+
+A \emph{training condition} $\gamma$ specifies the objective and, where relevant, the partition (Section~\ref{sec:reused}). For a dataset $D$, condition $\gamma$ and seed $s$, training returns a classifier
+\begin{equation}
+f_{\gamma,D,s}=\mathrm{Train}(D,\gamma;s).
+\label{eq:train}
+\end{equation}
+We study two interventions. \emph{Supervision} fixes $D$ and varies $\gamma$. \emph{Deletion} fixes $\gamma$ and varies a removed set $R\subset D$. We keep three quantities distinct and do not assume any two of them are equivalent: \emph{learning difficulty} (how hard an example is for an independent reference model), \emph{memorization} (how much the model's prediction on an example depends on including that example), and \emph{membership vulnerability} (how well an adversary can infer that the example was included).
+
+\textbf{Shared split.} Both papers use one stratified split of the 50,000 official CIFAR-100 training images into an eligible training pool $\pool$ of 40,000 images, a validation split $\valset$ of 5,000, and a nonmember audit pool $\audit$ of 5,000, each with 400, 50 and 50 images per class. The official 10,000-image test split $\testset$ is used for classification outcomes. A labeled-data budget $\beta\in\{10\%,25\%,50\%,100\%\}$ selects a nested, class-stratified training subset $D_\beta\subseteq\pool$ with $n_\beta=|D_\beta|=\beta\cdot 40{,}000$ and a validation subset $\valset_\beta\subseteq\valset$ with $|\valset_\beta|=\beta\cdot 5{,}000$. Validation labels count toward the budget, so the 100\% budget uses 45,000 labeled images and not all 50,000. No model, extractor or partition uses $\audit$.
+
+\subsection{Definitions Reused from the Companion Study}
+\label{sec:reused}
+
+This subsection restates the companion definitions that the privacy analyses use. They are unchanged; only the split above is shared.
+
+\textbf{Model and conditions.} All conditions use a CIFAR-style ResNet-18 \citep{he2016resnet} with block representations $h^{(\ell)}(x)$, $\ell=1,\ldots,8$, and fine-class output
+\begin{equation}
+p_\theta(y\mid x)=\operatorname{softmax}\big(\mA\,\bar h^{(8)}(x)+\va\big)_y,\qquad
+\mathcal{L}_{\mathrm{fine}}=-\frac{1}{n}\sum_{i=1}^{n}\log p_\theta(y_i\mid x_i),
+\label{eq:fine}
+\end{equation}
+where $\bar h^{(8)}$ is the globally average-pooled last block and $(\mA,\va)$ is the linear classifier. Table~\ref{tab:conditions} lists the conditions. \cn{CE-A} and \cn{CE-B} are independent cross-entropy models, \cn{Flat-Aux} controls for generic deep supervision \citep{lee2015dsn}, and \cn{Final-Hier} controls for head placement. Auxiliary heads are global average pooling followed by a linear layer and are discarded at inference.
+
+\begin{table}[t]
+\caption{Training conditions, reused from the companion study. The last column gives the conditions used for the privacy studies of this paper.}
+\label{tab:conditions}
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Condition $\gamma$ & Auxiliary labels & Heads at & Use here \\
+\midrule
+\cn{CE-A}, \cn{CE-B} & none & none & CE baseline; RQ1 strata \\
+\cn{True-Hier} & curated 20 superclasses $\Gtrue$ & stages 2, 3 & Studies A and B \\
+\cn{Random-Hier} & 19 balanced random partitions & stages 2, 3 & Study A (4 of 19) \\
+\cn{Spectrum-Hier} & 19 partitions spanning $W(G)$ & stages 2, 3 & Study A (4 of 19) \\
+\cn{Flat-Aux} & 100 fine labels & stages 2, 3 & Study A \\
+\cn{Final-Hier} & curated 20 superclasses $\Gtrue$ & stage 4 & Study A \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\textbf{Objective and gradient-norm weighting.} For auxiliary conditions the objective is
+\begin{equation}
+\mathcal{L}=\mathcal{L}_{\mathrm{fine}}+\sum_{s\in\mathcal{S}}\lambda_s\,\mathcal{L}_{\mathrm{aux},s},
+\label{eq:objective}
+\end{equation}
+where $\mathcal{S}$ is the set of stages with heads and $\mathcal{L}_{\mathrm{aux},s}$ is the cross-entropy of the head at stage $s$ on $G(y)$ (or on $y$ for \cn{Flat-Aux}). A single global $\lambda$ would give 20-way and 100-way heads different gradient magnitudes, because their initial losses differ ($\ln 20\approx 3.0$ versus $\ln 100\approx 4.6$). Each $\lambda_s$ is therefore set per stage so that the norm of the auxiliary gradient at the attached stage equals $\rho$ times the norm of the fine-loss gradient there, estimated over the first epoch and then held fixed. The ratio $\rho\in\{0.25,0.5,1\}$ is chosen once in the companion pilot and shared by all conditions and budgets. In every run of this paper, $\lambda_s$ is re-estimated by the same procedure with the companion's $\rho$.
+
+\textbf{Within-group similarity and matched partitions.} Let $\phi$ be a fixed feature extractor and $\mu_c$ the mean normalized feature of class $c$,
+\begin{equation}
+\mu_c=\frac{1}{|\{i:y_i=c\}|}\sum_{i:y_i=c}\frac{\phi(x_i)}{\|\phi(x_i)\|}.
+\label{eq:classmean}
+\end{equation}
+For a partition $G=\{g_1,\ldots,g_{20}\}$, within-group similarity is
+\begin{equation}
+W(G)=\frac{1}{20}\sum_{k=1}^{20}\frac{1}{10}\sum_{\substack{c,c'\in g_k\\ c<c'}}\cos(\mu_c,\mu_{c'}).
+\label{eq:w}
+\end{equation}
+The 19 \cn{Random-Hier} partitions $\{G^{\mathrm{rand}}_r\}_{r=1}^{19}$ are drawn uniformly from balanced partitions. The 19 \cn{Spectrum-Hier} partitions $\{G^{\mathrm{spec}}_r\}_{r=1}^{19}$ have $W$ values spread evenly between the minimum and the maximum reachable by swap-based local search; the maximum is a balanced visual clustering and the minimum an ``anti-visual'' partition. To build partitions used in training at budget $\beta$, $\phi$ is a SimCLR ResNet-18 \citep{chen2020simclr} trained without labels on the images of $D_\beta$, and class means use only the labels of $D_\beta$, so no condition uses labels or knowledge from outside its budget. To \emph{measure} $W$ in analysis, the companion uses one fixed extractor $\bar\phi$ of the same kind; under the shared split $\bar\phi$ is trained without labels on the 40,000 images of $\pool$. We write $e_i=\bar\phi(x_i)/\|\bar\phi(x_i)\|$ for the normalized analysis feature of example $i$.
+
+\textbf{Outcome factorization.} For a model with fine prediction $\hat y$ and a partition $G$,
+\begin{equation}
+\mathrm{Acc}=C_G\,S_G,\qquad C_G=P\big(\hat y\in G(y)\big),\qquad S_G=P\big(\hat y=y\mid \hat y\in G(y)\big),
+\label{eq:factor}
+\end{equation}
+so $\hat y\in G(y)$ means that the prediction lies in the true group. $C_G$ is coarse correctness and $S_G$ is sibling discrimination. Outcomes are computed in the \emph{true frame} ($G=\Gtrue$ for every model) and in the \emph{own frame} ($G$ is the model's training partition, compared with \cn{CE-B} on the same $G$).
+
+\textbf{Prediction depth.} With $\hat y^{(1)},\ldots,\hat y^{(8)}$ the predictions of cosine k-NN probes ($k=20$) on the pooled block features and $\hat y^{(9)}$ the classifier's prediction,
+\begin{equation}
+\PD(x)=\min\big\{\ell\in\{1,\ldots,9\}:\hat y^{(j)}(x)=\hat y^{(9)}(x)\ \text{for all } j\geq\ell\big\}.
+\label{eq:pd}
+\end{equation}
+The probe reference set is fixed: the training images of the 10\% budget, which number 4,000 under the shared split and are contained in every larger budget. When the query is itself in the reference set, it is excluded from its own neighbor search. PD is lowered mechanically at stages that receive auxiliary loss, so it is descriptive, and a low PD does not imply a correct prediction.
+
+\textbf{Similarity-adjusted residual.} For a partition-level outcome $T(G)$, the seed-paired difference between the model trained with $G$ and \cn{CE-B}, the companion fits $T(G)=a+b\,W(G)+\varepsilon$ over all non-curated partitions and defines
+\begin{equation}
+\delta=T(\Gtrue)-\big(\hat a+\hat b\,W(\Gtrue)\big),
+\label{eq:residual}
+\end{equation}
+with a 95\% prediction interval. The residual is the confirmatory quantity in both papers. The rank of $\Gtrue$ among the random partitions is reported only descriptively: with few partitions its resolution is coarse, and $\Gtrue$ is not an exchangeable draw from the random generator. Eq.~\ref{eq:residual} stays the primary definition, with two sensitivity checks: adding prespecified covariates $Z(G)$ (the linear-probe accuracy of the 20-way task defined by $G$ on frozen $\bar\phi$ features), $T(G)=a+b\,W(G)+\boldsymbol{\omega}^{\top}Z(G)+\varepsilon$; and comparing $\delta$ with the leave-one-partition-out residuals of the non-curated partitions. A residual is flagged as an extrapolation if $W(\Gtrue)$ lies outside the non-curated range of $W$. A surviving residual is an association beyond the measured properties, not proof that abstract meaning causes it.
+
+\subsection{Shared with the Companion Study}
+\label{sec:shared}
+
+Table~\ref{tab:shared} lists what is reused and what is new. RQ1 is answered by the companion runs: its hypotheses on coarse correctness, sibling discrimination and the residual-by-budget interaction, and its representation analyses, are the RQ1 evidence. The attack needs models trained on random 50\% subsets of a pool, so every privacy target and reference model is a \emph{new} run with the companion's configuration; the companion runs supply the RQ1 results, partitions, extractors and difficulty baselines.
+
+\begin{table}[t]
+\caption{Items shared with the companion study and items new in this paper.}
+\label{tab:shared}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\multicolumn{2}{@{}l}{\emph{Reused as is}} \\
+\midrule
+Data split and budgets & $\pool/\valset/\audit$ = 40,000/5,000/5,000; nested budgets $D_\beta$, $\valset_\beta$ (Section~\ref{sec:setting}). \\
+Random partitions & The same 19 \cn{Random-Hier} partitions, generated from the same seed. \\
+Spectrum partitions & The same per-budget \cn{Spectrum-Hier} partitions, SimCLR extractors $\phi$, and $\bar\phi$. \\
+Training recipe & Architecture, heads, SGD, augmentation, weight decay, $\lambda_s$ procedure, $\rho$. \\
+CE references & Five \cn{CE} seeds per budget, \cn{CE-A}/\cn{CE-B} folds, test-set strata. \\
+Conditions & Table~\ref{tab:conditions}. \\
+Outcome definitions & $C_G,S_G$ (Eq.~\ref{eq:factor}), $W$ (Eq.~\ref{eq:w}), PD (Eq.~\ref{eq:pd}), $\delta$ (Eq.~\ref{eq:residual}). \\
+RQ1 & Answered by the companion runs (RQ1 representation results). \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{New in this paper}} \\
+\midrule
+Audit pool use & Never-trained nonmembers for calibration, generalization, offline attack. \\
+LiRA model sets & $M$ new runs per condition on random halves of the pool, companion configuration. \\
+Training-pool difficulty & $K$-fold out-of-fold CE difficulty on $D_\beta$ (Section~\ref{sec:difficulty}). \\
+Deletion sets & Cohorts, preliminary audit, matched removal sets, no-deletion baseline sets and retrained model sets per condition. \\
+Support features & Sibling sets, counts, similarity-weighted support, support mass and visual density (Section~\ref{sec:support}). \\
+Prediction study & Baseline and semantic feature models for deletion effects (Section~\ref{sec:prediction}). \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{table}
+
+\subsection{Difficulty: Test-Set Strata and Out-of-Fold Pool Difficulty}
+\label{sec:difficulty}
+
+Selecting hard examples with one model and re-measuring them with the same or a correlated model creates apparent change through regression to the mean. Both papers therefore define difficulty with independent cross-entropy models, frozen before any hierarchy variant is compared.
+
+\textbf{RQ1 strata (companion, unchanged).} On the test set, five \cn{CE} seeds per budget are rotated through five folds. In each fold one seed is \cn{CE-A} and defines the hard stratum as the 25\% of test examples with the lowest \cn{CE-A} true-class probability; the others are \cn{CE-B}. The difference $M(\cn{CE-B})-M(\cn{CE-A})$ on that stratum estimates the regression-to-the-mean artifact.
+
+\textbf{Privacy strata (new).} The privacy analyses concern training examples, which the test-set strata do not cover. We split $D_\beta$ into $K=5$ class-stratified folds, train a \cn{CE} model on the other $K-1$ folds with the companion recipe, and score the held-out fold. This gives for every $i\in D_\beta$ an out-of-fold true-class probability $d_i^0$, loss, and prediction depth $\PD_i^0$, from a model that never trained on $i$. In a sensitivity analysis that forms strata from $\PD_i^0$, ties are broken by out-of-fold loss and k-NN neighbor purity. Pool strata are the quartiles of $d_i^0$, fixed before any privacy model is trained. Hierarchy models never define their own strata.
+
+\textbf{Relationship between the two.} Both are the true-class probability of an example under the same \cn{CE} recipe, from a model that did not train on it; the test-set score uses a model trained on all of $D_\beta$, the out-of-fold score one trained on $(K-1)/K$ of $D_\beta$. They estimate the same notion of difficulty on two populations. As a check, the $K$ fold models also score $\testset$, and we report the Spearman correlation of their mean score with the companion's \cn{CE-A} score and the overlap of the two hard strata. RQ1 conclusions use only the test-set strata; privacy conclusions use only the pool strata.
+
+\subsection{Threat Model and Attack}
+\label{sec:threat}
+
+The adversary receives a candidate record $(x_i,y_i)$ and black-box access to the released model's output probabilities. It knows the architecture, the training procedure, the condition $\gamma$ and the public hierarchy, and it can train reference models on data from the same distribution. The primary threat model attacks one released model at a time. Attacks that compare a model before and after deletion form a separate, stronger threat model and are not studied here.
+
+For a model $f$ the attack statistic is the logit-scaled true-class confidence
+\begin{equation}
+q(f,x,y)=\log\frac{p_f(y\mid x)}{1-p_f(y\mid x)},
+\label{eq:q}
+\end{equation}
+averaged over the image and its horizontal flip. For a record $i$, LiRA fits Gaussians $\mathcal{N}(\hat\mu_{i,\mathrm{in}},\hat\sigma_{i,\mathrm{in}}^2)$ and $\mathcal{N}(\hat\mu_{i,\mathrm{out}},\hat\sigma_{i,\mathrm{out}}^2)$ to $q$ over reference models trained with and without $i$, and scores a target model $f$ by the log-likelihood ratio
+\begin{equation}
+\Lambda_i(f)=\log\frac{\mathcal{N}\big(q(f,x_i,y_i);\hat\mu_{i,\mathrm{in}},\hat\sigma_{i,\mathrm{in}}^2\big)}{\mathcal{N}\big(q(f,x_i,y_i);\hat\mu_{i,\mathrm{out}},\hat\sigma_{i,\mathrm{out}}^2\big)}.
+\label{eq:lira}
+\end{equation}
+The variance rule is stated in terms of the reference models that a target actually uses (Section~\ref{sec:membership}): per-record variances $\hat\sigma_{i,\mathrm{in}}^2,\hat\sigma_{i,\mathrm{out}}^2$ are fitted only if, for every target $m$, both $|\inset_i\setminus\{m\}|\geq 15$ and $|\outset_i\setminus\{m\}|\geq 15$; otherwise we use one IN and one OUT variance per model set, pooled over records, as \citet{carlini2022lira} suggest for small reference sets. With $M=32$ models each side has 15 or 16 reference models and per-record variances are used; with 16 models each side has 7 or 8 and the pooled variances are used. The offline variant, which uses only the OUT Gaussian, is reported as a secondary attack. We report true-positive rate (TPR) at fixed false-positive rate (FPR), the area under the ROC curve (AUC), and score distributions by difficulty stratum and class. Empirical attacks give lower bounds on leakage for one attacker and one operating point; they are not a complete privacy measure or a differential-privacy guarantee.
+
+\subsection{Membership Design: Reference-Model Sets}
+\label{sec:membership}
+
+LiRA needs, for every record, reference models that include it and models that exclude it; averaging over seeds with membership fixed does not provide this, so we randomize membership across models.
+
+\textbf{Model sets.} For a training condition $\gamma$ and a pool $D$ (either $D_\beta$ or a post-deletion pool, Section~\ref{sec:deletion}), we draw a membership matrix $u\in\{0,1\}^{|D|\times M}$ in which every record is included in exactly $M/2$ of the $M$ models, chosen uniformly at random and independently across records. Model $m$ is trained with condition $\gamma$ on $D_m=\{i\in D:u_{im}=1\}$, which has about $|D|/2$ records, using seed $m$. Let $\inset_i=\{m:u_{im}=1\}$ and $\outset_i=\{m:u_{im}=0\}$. Every condition, including every deletion condition, gets its own model set and its own membership matrix, and its attack is calibrated only on that set.
+
+\textbf{Leave-one-model-out scoring.} Each model in turn is the target. For target $m$ and record $i$, the IN and OUT Gaussians of Eq.~\ref{eq:lira} are fitted on $\inset_i\setminus\{m\}$ and $\outset_i\setminus\{m\}$, which leaves $M/2-1$ models on the side that contains $m$ and $M/2$ on the other. This gives a score $\Lambda_i^{(m)}=\Lambda_i(f_m)$ for every pair $(i,m)$, and the true membership label of that pair is $u_{im}$. The threshold $\tau_{\gamma,D,\alpha}$ is the value at which the fraction of nonmember pairs $\{(j,m):u_{jm}=0\}$ with $\Lambda_j^{(m)}>\tau$ equals $\alpha$. Thresholds are pooled over the $M$ targets because $\Lambda$ is a likelihood ratio on a common scale. A low FPR $\alpha$ is reported only if the expected number of false positives, $\alpha$ times the number of nonmember pairs, is at least 100.
+
+\textbf{Role of the audit pool.} No model trains on $\audit$. It provides (i) the generalization gap (mean loss on $\audit$ minus mean loss on members) and calibration error, on the same 5,000 records for every condition; (ii) a nonmember calibration set for the offline attack, disjoint from all analyzed records; and (iii) nonmember score distributions by class and by out-of-fold difficulty, which the $K$ fold models can score.
+
+\textbf{Partition dependence.} At budget $\beta$, \cn{Spectrum-Hier} partitions are built from all of $D_\beta$, including records that a given model excludes. The partition is a class-level object that is identical for all $M$ models of a condition, so it cannot by itself separate IN from OUT models for a record.
+
+\subsection{Example-Level Vulnerability and Memorization}
+\label{sec:vulnerability}
+
+The vulnerability of record $i$ under condition $\gamma$ and pool $D$ at FPR $\alpha$ is the fraction of models containing $i$ in which the attack flags it,
+\begin{equation}
+r_i(\gamma,D;\alpha)=\frac{1}{|\inset_i|}\sum_{m\in\inset_i}\mathbf{1}\big[\Lambda_i^{(m)}>\tau_{\gamma,D,\alpha}\big],
+\label{eq:vuln}
+\end{equation}
+which is a per-example TPR at the condition's FPR $\alpha$. Because membership is randomized across models, $r_i$ averages over training sets that differ in which other records they contain, not only over seeds. We also keep the continuous scores through the per-example AUC, the probability that $\Lambda_i^{(m)}>\Lambda_i^{(m')}$ for $m\in\inset_i$ and $m'\in\outset_i$, which does not depend on a threshold.
+
+Memorization is estimated from the same models with the subsampled estimator of \citet{feldman2020neural},
+\begin{equation}
+\Mem_i(\gamma,D)=\frac{1}{|\inset_i|}\sum_{m\in\inset_i}p_{f_m}(y_i\mid x_i)-\frac{1}{|\outset_i|}\sum_{m\in\outset_i}p_{f_m}(y_i\mid x_i).
+\label{eq:mem}
+\end{equation}
+This approximates the leave-one-out quantity $\E_s\big[p_{f_{\gamma,D,s}}(y_i\mid x_i)-p_{f_{\gamma,D\setminus\{i\},s}}(y_i\mid x_i)\big]$ at training-set size $|D|/2$. Its reliability is reported as the correlation between estimates from two disjoint halves of the $M$ models. $\Mem_i$ and $r_i$ come from the same models but are analyzed as separate outcomes.
+
+\subsection{Study A: Hierarchy Supervision and Privacy}
+\label{sec:studyA}
+
+Study~A fixes the pool $D_\beta$ and varies $\gamma$ over \cn{CE}, \cn{True-Hier}, \cn{Flat-Aux}, \cn{Final-Hier}, and a prespecified subset of four \cn{Random-Hier} and four \cn{Spectrum-Hier} partitions. The subset is fixed before any privacy model is trained or any companion outcome is inspected. It is drawn from the nine random and nine spectrum partitions that the companion trains at every budget, so RQ1 results exist for all of them: the four random partitions with the lowest generation index, and the four spectrum partitions closest to the 10th, 37th, 63rd and 90th percentiles of $W$ among the nine. For each record $i\in D_\beta$,
+\begin{align}
+\Delta_i^{\mathrm{sup}}(\gamma)&=r_i(\gamma,D_\beta;\alpha)-r_i(\cn{CE},D_\beta;\alpha), \label{eq:dsup}\\
+\Delta_i^{\mathrm{PD}}(\gamma)&=\overline{\PD}_i(\gamma)-\overline{\PD}_i(\cn{CE}), \label{eq:dpd}
+\end{align}
+where $\overline{\PD}_i(\gamma)$ is the mean of Eq.~\ref{eq:pd} for $x_i$ over the models of condition $\gamma$ that contain $i$. Differences are paired by record; the model sets are independent, so pairing removes example-level but not model-level variation.
+
+We analyze the joint distribution of $(\Delta_i^{\mathrm{PD}},\Delta_i^{\mathrm{sup}})$ and four patterns: lower PD with lower vulnerability; lower PD with higher vulnerability; lower PD with no vulnerability change; and unchanged or higher PD with a vulnerability change. Each is reported overall, within the out-of-fold difficulty quartiles, and at each budget. The C$\cdot$S factorization is applied to privacy changes by splitting $\Delta_i^{\mathrm{sup}}$ by the record's outcome in the \cn{CE} OUT models: correct, wrong within the true group, or wrong across groups. We also report test accuracy, $C_G$, $S_G$, the generalization gap on $\audit$, true-class margins and expected calibration error.
+
+For a partition-level privacy outcome we use $T^{\mathrm{priv}}(G)=\frac{1}{n_\beta}\sum_{i}\Delta_i^{\mathrm{sup}}(G)$ and its similarity-adjusted residual $\delta^{\mathrm{priv}}$ from Eq.~\ref{eq:residual}, fitted over the eight non-curated partitions of the subset. The contrast between assigned conditions estimates the causal effect of the intervention; the association between $\Delta^{\mathrm{PD}}$ and $\Delta^{\mathrm{sup}}$ across examples is observational, and we do not claim that PD causes vulnerability.
+
+\subsection{Semantic Neighborhood Support}
+\label{sec:support}
+
+For a partition $G$ and a pool $D$, the semantic siblings of record $i$ are the records from other fine classes in the same group,
+\begin{equation}
+\mathcal{N}_i^{G}(D)=\{\,j\in D: j\neq i,\ G(y_j)=G(y_i),\ y_j\neq y_i\,\},\qquad N_i^{G}(D)=\big|\mathcal{N}_i^{G}(D)\big|,
+\label{eq:siblings}
+\end{equation}
+where $N_i^G$ is the sibling count.
+Under a balanced full pool, $N_i^G$ is the same for every record, so it cannot explain variation on its own. The similarity-weighted support is
+\begin{equation}
+U_i^{G}(D)=\frac{1}{N_i^{G}(D)+\epsilon}\sum_{j\in\mathcal{N}_i^{G}(D)}\kappa(e_i,e_j),
+\label{eq:support}
+\end{equation}
+where $e$ is the analysis feature of Section~\ref{sec:reused}, $\kappa(e,e')=\exp\big((\cos(e,e')-1)/t\big)$ is a nonnegative kernel with temperature $t$ fixed before analysis, and $\epsilon=10^{-6}$. ($U$ avoids a clash with $S_G$.) $U_i^G$ is an average, so it does not change in expectation when every sibling class loses the same uniformly chosen fraction of its records. We therefore also use the unnormalized sibling support mass
+\begin{equation}
+K_i^{G}(D)=\sum_{j\in\mathcal{N}_i^{G}(D)}\kappa(e_i,e_j)=\big(N_i^{G}(D)+\epsilon\big)\,U_i^{G}(D),
+\label{eq:mass}
+\end{equation}
+which falls by $\sum_{j\in R\cap\mathcal{N}_i^G(D)}\kappa(e_i,e_j)$ when a set $R$ is removed and so responds to uniform removal. $U_i^G$ and $K_i^G$ mix group membership with visual similarity, so they are not purely semantic. They are analyzed with three other descriptors on the same features: sibling membership, same-class support (the mean $\kappa$ to records of class $y_i$), and total visual-neighbor density regardless of group,
+\begin{equation}
+V_i(D)=\frac{1}{50}\sum_{j\in\mathrm{NN}_{50}(i;D)}\kappa(e_i,e_j),
+\label{eq:vdens}
+\end{equation}
+where $\mathrm{NN}_{50}(i;D)$ is the set of the 50 records of $D\setminus\{i\}$ nearest to $i$ in cosine similarity of $e$. Support is defined on the pool $D$ rather than a model's half $D_m$. The expectation of $U$ over random halves equals its value on $D$, and that of $K$ equals half its value on $D$, so using $D$ changes only the scale of $K$. RQ4 asks whether the group-specific variables add predictive information beyond the visual and frequency variables.
+
+\subsection{Study B: Deletion and Privacy Externalities}
+\label{sec:deletion}
+
+For a removal set $R\subset D_\beta$, the post-deletion pool is
+\begin{equation}
+D_\beta^{-R}=D_\beta\setminus R.
+\label{eq:delete}
+\end{equation}
+Each deletion condition gets a new model set of $M_B$ models trained from scratch on random halves of $D_\beta^{-R}$ (Section~\ref{sec:membership}), with its own membership matrix and its own attack calibration. Retraining from scratch is the reference outcome of deletion; it is not an unlearning algorithm. The no-deletion baseline of Study~B is a separate \emph{baseline set} of $M_B$ models per Study~B condition $\gamma$, trained on random halves of $D_\beta$ with its own membership matrix and seeds disjoint from all other sets. It is scored with the same leave-one-model-out procedure, the same variance rule and the same $\alpha$ as the deletion sets, so both terms below use the same number of IN and OUT reference models per target and the same granularity of $r_i$. The Study~A set ($M=32$) is not used here. For a retained record $i\in D_\beta^{-R}$,
+\begin{equation}
+\Delta_i^{\mathrm{del}}(R;\gamma)=r_i(\gamma,D_\beta^{-R};\alpha)-r_i(\gamma,D_\beta;\alpha),
+\label{eq:ddel}
+\end{equation}
+where the first term comes from the deletion set for $R$ and the second from the baseline set for $\gamma$. Because both terms use the same estimator, $\Delta_i^{\mathrm{del}}$ has no bias from the attack configuration. If the composition of $R$ does not matter, its expectation reflects only the smaller pool, $(n_\beta-|R|)/2$ instead of $n_\beta/2$ training images per model. That size effect is common to all removal sets of equal $|R|$ and is controlled by $R^{\mathrm{rand}}$. A positive value relative to $R^{\mathrm{rand}}$ is an empirical externality of deletion on retained records. It is not evidence of residual information about the deleted records. The primary training condition is \cn{CE}, so that deletion effects are measured without hierarchy supervision. \cn{True-Hier} is secondary and gives the hierarchy-by-deletion interaction.
+
+\textbf{Cohorts.} A target cohort is defined at class level. Cohort $\mathcal{C}_q$, $q=1,\ldots,Q$, consists of four fine classes, each from a different curated superclass, drawn at random without replacement across cohorts; its records $T_q=\{i\in D_\beta:y_i\in\mathcal{C}_q\}$ are retained in every condition. The 16 curated siblings of the cohort classes are $\mathcal{Y}_q^{\mathrm{sib}}=\{c\notin\mathcal{C}_q:\Gtrue(c)=\Gtrue(c')\text{ for some }c'\in\mathcal{C}_q\}$.
+
+\textbf{Preliminary audit.} Quantities that select removal sets or enter the prediction features come from an independent preliminary audit: a set $\mathcal{M}^0$ of $M_0$ \cn{CE} models on random halves of $D_\beta$, with seeds and membership matrix disjoint from all other sets, scored by leave-one-model-out (Section~\ref{sec:membership}). With $\inset_i$ and $\Lambda_i^{(m)}$ taken on this set, the preliminary score, baseline vulnerability and baseline memorization of record $i$ are
+\begin{equation}
+\bar\Lambda_i^0=\frac{1}{|\inset_i|}\sum_{m\in\inset_i}\Lambda_i^{(m)},\qquad
+r_i^0=r_i(\cn{CE},D_\beta;0.1\%),\qquad
+\Mem_i^0=\Mem_i(\cn{CE},D_\beta),
+\label{eq:lambda0}
+\end{equation}
+with $r_i$ from Eq.~\ref{eq:vuln} and $\Mem_i$ from Eq.~\ref{eq:mem}, all on $\mathcal{M}^0$. $\bar\Lambda_i^0$ is continuous and is used for ranking; $r_i^0$ takes values in multiples of $1/|\inset_i|$ and is used only as a feature.
+
+\textbf{Removal sets.} All removal sets have the same size $|R|=\eta\,n_\beta$, are chosen before any target model is trained, and exclude $T_q$.
+\begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+  \item \emph{Random} $R^{\mathrm{rand}}_q$: $|R|$ records drawn uniformly from $D_\beta\setminus T_q$.
+  \item \emph{Semantic-neighbor} $R^{\mathrm{sem}}_q$: $|R|/16$ records drawn uniformly from each class in $\mathcal{Y}_q^{\mathrm{sib}}$.
+  \item \emph{Visual-neighbor} $R^{\mathrm{vis}}_q$: the 16 classes outside $\mathcal{C}_q\cup\mathcal{Y}_q^{\mathrm{sib}}$ whose $\bar\phi$ class means are closest in cosine similarity to a cohort class mean, with $|R|/16$ records from each, selected by the $\Delta V$-matching step below. This matches the number of affected classes and the per-class removal count of $R^{\mathrm{sem}}_q$ while removing no curated sibling.
+  \item \emph{High-vulnerability} $R^{\mathrm{hv}}_q$: the $|R|$ records of $D_\beta\setminus T_q$ with the largest preliminary score $\bar\Lambda_i^0$ (Eq.~\ref{eq:lambda0}), ties broken by the smaller record index. This condition connects to the Onion Effect \citep{carlini2022onion}.
+  \item \emph{Within-parent near/far} $R^{\mathrm{near}}_q$, $R^{\mathrm{far}}_q$ (secondary): from each class in $\mathcal{Y}_q^{\mathrm{sib}}$, the $|R|/16$ records with the highest, or lowest, mean $\kappa$ to $T_q$. These separate visual proximity from group membership inside the curated parents.
+\end{itemize}
+Exact matching of every class property is not possible, so for each set we report class and parent composition, mean $\kappa$ to the cohort, the distribution of $d^0$ among removed records and the retained count per class, and we report remaining differences. The primary analysis uses the cohort records $T_q$, retained under every compared condition; secondary analyses use all records retained under every condition of a cohort, $D_\beta\setminus\bigcup R$.
+
+\textbf{Support change.} The change in support caused by deletion is
+\begin{equation}
+\Delta U_i^{G}(R)=U_i^{G}(D_\beta^{-R})-U_i^{G}(D_\beta),
+\label{eq:dsupport}
+\end{equation}
+and $\Delta N_i^G(R)$, $\Delta K_i^G(R)$ and $\Delta V_{i,R}=V_i(D_\beta^{-R})-V_i(D_\beta)$ are defined in the same way from Eqs.~\ref{eq:siblings}, \ref{eq:mass} and~\ref{eq:vdens}. Under uniform removal within classes, $\E[\Delta U_i^G]=0$, so $\Delta U$ is kept as a descriptor and the primary support-change quantity is $\Delta K_i^{\Gtrue}(R)=-\sum_{j\in R\cap\mathcal{N}_i^{\Gtrue}(D_\beta)}\kappa(e_i,e_j)$. It is negative under $R^{\mathrm{sem}}_q$, exactly zero for cohort records under $R^{\mathrm{vis}}_q$, which removes no curated sibling, and small under $R^{\mathrm{rand}}_q$. The hypothesis is that the semantic organization of the removed records helps explain which retained records change most, not that more deletion always raises vulnerability. We compare $\Delta K$ with the loss of visual neighbors $\Delta V$ and with the reduction in class frequency, and the near/far sets give removal sets with different visual-support change within the same parents.
+
+\textbf{$\Delta V$ matching.} The source design asks, where possible, for removal sets with similar visual-density change but different semantic-support change; $R^{\mathrm{sem}}_q$ and $R^{\mathrm{vis}}_q$ are matched for this. Let $\overline{\Delta V}_q(R)$ be the mean of $\Delta V_{i,R}$ over $i\in T_q$. $R^{\mathrm{sem}}_q$ is drawn uniformly as above. $R^{\mathrm{vis}}_q$ starts from a uniform draw of $|R|/16$ records in each of its 16 classes, and a swap search then repeatedly exchanges one removed record for one retained record of the same class whenever the exchange moves $\overline{\Delta V}_q(R^{\mathrm{vis}}_q)$ toward $\overline{\Delta V}_q(R^{\mathrm{sem}}_q)$. It stops when the two differ by less than 5\% of $|\overline{\Delta V}_q(R^{\mathrm{sem}}_q)|$ or after $10^4$ swaps. Per-class counts are unchanged by the swaps, and the search uses only $e$ and the cohort, never a privacy outcome. If the tolerance is not reached, we report the remaining gap, and $\Delta V_{i,R}$ stays in $X^{\mathrm{base}}$ to adjust for it. The pair then has similar visual-density change and different $\Delta K^{\Gtrue}$, which is the contrast P3 tests.
+
+\subsection{Predicting Privacy Redistribution}
+\label{sec:prediction}
+
+The prediction target for retained record $i$ and removal set $R$ is
+\begin{equation}
+Y_{i,R}=\Delta_i^{\mathrm{del}}(R;\gamma).
+\label{eq:target}
+\end{equation}
+The baseline features, all computed before the target is observed, are
+\begin{equation}
+X_{i,R}^{\mathrm{base}}=\big[\,d_i^0,\ r_i^0,\ \bar\Lambda_i^0,\ \Mem_i^0,\ \vc_i,\ \vv_i,\ n_{y_i},\ \Delta V_{i,R},\ |R|\,\big],
+\label{eq:xbase}
+\end{equation}
+where $d_i^0$ is out-of-fold difficulty; $r_i^0$, $\bar\Lambda_i^0$ and $\Mem_i^0$ are the baseline vulnerability, preliminary score and baseline memorization of Eq.~\ref{eq:lambda0}, all from the preliminary audit models and not from the baseline or deletion sets that enter the target; $\Mem_i^0$ is the influence-related control that RQ4 names; $\vc_i$ are class properties (class-mean $\bar\phi$ dispersion and the \cn{CE} out-of-fold accuracy of class $y_i$), $\vv_i$ are visual-neighborhood properties (neighbor density and same-class support from Section~\ref{sec:support}), $n_{y_i}$ is the retained count of class $y_i$, $\Delta V_{i,R}$ is the change in visual-neighbor density caused by $R$, and $|R|$ is the removal size. $|R|$ is constant in the primary design and is kept so that the same model applies if the removal fraction is varied. The semantic features are
+\begin{equation}
+\begin{aligned}
+X_{i,R}^{\mathrm{sem}}=\big[\,&N_i^{\Gtrue}(D_\beta),\ \Delta N_i^{\Gtrue}(R),\ U_i^{\Gtrue}(D_\beta),\\
+&\Delta U_i^{\Gtrue}(R),\ K_i^{\Gtrue}(D_\beta),\ \Delta K_i^{\Gtrue}(R)\,\big].
+\end{aligned}
+\label{eq:xsem}
+\end{equation}
+$\Delta K_i^{\Gtrue}$ carries the semantic-support change under uniform removal; $\Delta U_i^{\Gtrue}$ is kept as the source draft defines it, although its expectation is zero on the primary sets.
+We compare
+\begin{align}
+\hat Y_{i,R}^{\mathrm{base}}&=g_{\mathrm{base}}\big(X_{i,R}^{\mathrm{base}}\big), \label{eq:gbase}\\
+\hat Y_{i,R}^{\mathrm{full}}&=g_{\mathrm{full}}\big(X_{i,R}^{\mathrm{base}},X_{i,R}^{\mathrm{sem}}\big), \label{eq:gfull}
+\end{align}
+fitted with the same regularized linear regression family (ridge, penalty chosen by inner cross-validation). Gradient-boosted trees are a secondary model family. Metrics are mean absolute error, $R^2$, and the precision of the predicted top 5\% of increases. Data are split by deletion experiment and by cohort, never by record--removal pair, because records from one experiment share models. We also evaluate on held-out fine classes, held-out curated parents, and, where available, the secondary dataset. An in-sample correlation is not treated as evidence of predictive value.
+
+\subsection{Linking Difficulty and Redistribution}
+\label{sec:linking}
+
+Study~A gives pairs $(\Delta_i^{\mathrm{PD}},\Delta_i^{\mathrm{sup}})$ and Study~B gives pairs $(\Delta K_i^{\Gtrue}(R),\Delta_i^{\mathrm{del}})$; we prespecify interactions of each with $d_i^0$ and $\PD_i^0$. The key test, whether semantic support predicts privacy change after controlling for baseline PD and difficulty, is the comparison of Eqs.~\ref{eq:gbase} and~\ref{eq:gfull} with $\PD_i^0$ added to both feature sets. We assume no single causal path from supervision through difficulty to vulnerability.
+
+\section{Experimental Design}
+\label{sec:experiments}
+
+\subsection{Datasets and Regimes}
+\label{sec:datasets}
+
+\textbf{CIFAR-100.} The budgets $\beta=10\%,25\%,50\%,100\%$ give $|D_\beta|=4{,}000$, $10{,}000$, $20{,}000$, $40{,}000$ and $|\valset_\beta|=500$, $1{,}250$, $2{,}500$, $5{,}000$. Every privacy model trains on half of its pool, so a privacy model at pool fraction $\beta$ sees $n_\beta/2$ images, the same number as a companion model at budget $\beta/2$. Privacy studies therefore run at $\beta=100\%$ (primary) and $\beta=50\%$, whose models match the companion's 50\% and 25\% budgets in training-set size. At $\beta=10\%$ and $\beta=25\%$ the privacy models would have 2,000 and 5,000 images, and the companion has no budget of those sizes, so these regimes are not used for privacy. Partitions, extractors and $\lambda_s$ procedure come from budget $\beta$, because they may use the labels and images of $D_\beta$; weight decay comes from the size-matched companion budget $\beta/2$, because it was selected for that training-set size. Privacy \cn{CE} and \cn{True-Hier} models are compared with the size-matched companion models on $\testset$ accuracy, $C_G$ and $S_G$ as a reuse check. Variants are compared within a regime. Raw PD is not compared across regimes when the reference set changes; under the fixed probe set of Section~\ref{sec:reused} it does not.
+
+
+
+\textbf{Secondary dataset.} The core Study~A contrast is repeated on the companion's genus-structured iNat-100 subset of iNaturalist 2018 \citep{vanhorn2018inat}; Appendix~\ref{app:inat} gives its construction and split.
+
+\subsection{Stages, Run Counts and Compute}
+\label{sec:stages}
+
+The stages are: (1) representation and hierarchy screening on all partitions (the companion study, not repeated); (2) confirmatory privacy experiments (Study~A) on the curated hierarchy and the prespecified subset; (3) deletion experiments (Study~B), retrained from scratch; and (4) predictive validation on held-out cohorts, classes and parents. Primary contrasts, subset rules, attacks, thresholds and outcomes are fixed before the final evaluation, and exploratory analyses are kept apart.
+
+
+
+On a single A100, retraining for deletion and the reference models for membership inference are the main costs, which is why privacy experiments are restricted to the prespecified subset. Appendix~\ref{app:compute} gives the run counts and a compute estimate (about 326 A100-hours at $\beta=100\%$ under a stated timing assumption); the reference-model counts $M$, $M_0$ and $M_B$ are parameters.
+
+\subsection{Statistical Design and Decision Rules}
+\label{sec:stats}
+
+\textbf{Units of inference.} For hierarchy effects the unit is the partition, as in the companion study. For vulnerability, uncertainty comes from the independently trained models, the reference-model calibration, the membership assignments and the evaluated records; deletion adds dependence through removal sets and cohorts. Thousands of records scored by one model set are not independent replicates. Confidence intervals for condition contrasts use a two-way bootstrap that resamples models within each set and records within the pool; partition-level intervals add resampling over partitions; deletion intervals resample cohorts.
+
+\textbf{Primary tests.} The primary family is: (P1) the \cn{True-Hier} minus \cn{CE} difference in condition-level TPR at $\alpha=0.1\%$, which equals the mean of $\Delta_i^{\mathrm{sup}}(\Gtrue)$; (P2) the similarity-adjusted residual $\delta^{\mathrm{priv}}$ of $\Gtrue$; (P3) the cohort-mean difference $\Delta^{\mathrm{del}}(R^{\mathrm{sem}})-\Delta^{\mathrm{del}}(R^{\mathrm{vis}})$ under \cn{CE}; (P4) the same difference against $R^{\mathrm{rand}}$; and (P5) the reduction in held-out mean absolute error from $g_{\mathrm{base}}$ to $g_{\mathrm{full}}$ under leave-one-cohort-out evaluation. The family is corrected with the Holm procedure. P2 has eight non-curated partitions and therefore low power; a null P2 with a non-null P1 is reported as an effect that we cannot attribute to semantics. All other analyses, including the four patterns of Study~A, the near/far comparison, the \cn{True-Hier} deletion arm and the offline attack, are exploratory.
+
+\textbf{Robustness of RQ2.} A vulnerability change between conditions is read together with their differences in accuracy, generalization gap, margins and calibration error. At example level, we repeat the Study~A comparison within groups of records whose correctness in the OUT models is the same under both conditions, so that a change in $r_i$ is not only a change in which records are fit.
+
+\textbf{Interpretation and threats to validity.} (1) Low prediction depth does not imply correctness or low memorization. (2) A residual after adjusting for $W$ is not proof that abstract meaning drives an effect. (3) Changes in confidence and calibration can move membership scores independently of difficulty. (4) Post-deletion changes may come from counts, balance or optimization; the random and visual-neighbor sets control for this. (5) Empirical attacks depend on attacker, access, reference models and operating point, and give no formal guarantee. (6) Retraining from scratch is a reference outcome, not an unlearning method. (7) Hierarchy supervision is not assumed to help; curated and visual partitions behaving alike, or difficulty and privacy changes that do not track each other, are informative outcomes. (8) Records with label errors \citep{northcutt2021labelerrors} can appear both hard and highly vulnerable; we repeat the main analyses after removing records flagged by out-of-fold confident-error screening.
+
+\section{Limitations and Scope}
+\label{sec:limits}
+
+This protocol reports no results. It covers one small architecture trained from scratch at low resolution, balanced partitions, linear auxiliary heads, one black-box attack family, and retraining from scratch as the only deletion mechanism. Privacy models train on half of each pool, so their sizes match the companion's 25\% and 50\% budgets, and the eight non-curated partitions of the privacy subset limit the power of $\delta^{\mathrm{priv}}$. Before/after-deletion attacks, unlearning algorithms, pretrained backbones and unbalanced taxonomies are out of scope.
+
+\bibliography{iclr2025_conference}
+\bibliographystyle{iclr2025_conference}
+
+\appendix
+\section{Secondary Dataset}
+\label{app:inat}
+
+The companion's iNat-100 subset of iNaturalist 2018 \citep{vanhorn2018inat} has five species from each of 20 genera at $64\times64$ resolution, with species mapped to genus by a fixed taxonomy snapshot and a minimum number of images per species. For the privacy studies it is split into pool, validation and audit by observation and, where the metadata allow, by near-duplicate and photographer groups, so that near-identical images do not fall on both sides of a membership boundary. Only the Study~A contrast of \cn{CE}, \cn{True-Hier} and the eight-partition subset is repeated, at $\beta=100\%$ and with $M=16$. We report how the dataset differs from CIFAR-100 in resolution, class imbalance and taxonomy quality.
+
+\section{Run Counts and Compute}
+\label{app:compute}
+
+\begin{table}[!ht]
+\caption{Planned runs at $\beta=100\%$ and compute estimate. GPU-hours assume $t(n)=0.35\,(n/20{,}000)$ A100-hours for one 200-epoch run on $n$ images. This is an assumption to be replaced by pilot timings.}
+\label{tab:compute}
+\begin{center}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Component & Conditions & Models each & Runs & GPU-h \\
+\midrule
+Study A (12 conditions, Table~\ref{tab:conditions}) & 12 & $M=32$ & 384 & 134 \\
+Preliminary audit (\cn{CE}) & 1 & $M_0=16$ & 16 & 6 \\
+Out-of-fold difficulty (\cn{CE}, $K=5$) & 1 & 5 & 5 & 3 \\
+Study B baselines (\cn{CE}, \cn{True-Hier}) & 2 & $M_B=16$ & 32 & 11 \\
+Study B, \cn{CE}: $Q=4$ cohorts $\times$ 6 removal sets & 24 & $M_B=16$ & 384 & 129 \\
+Study B, \cn{True-Hier}: 2 cohorts $\times$ 4 primary sets & 8 & $M_B=16$ & 128 & 43 \\
+\midrule
+Total at $\beta=100\%$ & & & 949 & 326 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Table~\ref{tab:compute} gives the run counts at $\beta=100\%$ for removal fraction $\eta=0.04$ ($|R|=1{,}600$, or 100 records from each of 16 classes, a quarter of each affected class). Deletion models train on $(n_\beta-|R|)/2=19{,}200$ images. Study~A at $\beta=50\%$ adds about 67 GPU-hours; the iNat-100 repetition (160 runs) is costed after the pilot. If pilot timings exceed the assumption, we reduce $M_B$ before $Q$ and $Q$ before the number of removal types, and report the change. Feature extraction, $\bar\phi$ features and k-NN probe banks are computed once and cached.
+
+\end{document}

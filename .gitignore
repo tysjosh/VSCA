@@ -1,0 +1,30 @@
+# environments (rebuilt by setup_env.sh / vsca/scripts/setup_vllm_env.sh)
+.venv/
+.venv-*/
+__pycache__/
+*.egg-info/
+
+# data and run outputs (runs go to the Hugging Face dataset repo)
+data/
+runs/
+runs_smoke/
+remote_runs/
+*.pt
+*.safetensors
+*.npy
+*.npz
+
+# logs and local state
+*.log
+.agents/
+.DS_Store
+
+# compiled papers (sources are kept)
+*.pdf
+*.aux
+*.bbl
+*.blg
+*.out
+
+# rendered page previews from reviews
+**/review/pages/

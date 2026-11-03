@@ -1,0 +1,199 @@
+\documentclass{article}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{icml2025}
+
+\newcommand{\vsca}{\textsc{VSCA}}
+\newcommand{\ind}{\mathbb{I}}
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\dataset}{\mathcal{D}}
+\newcommand{\claims}{\mathcal{C}}
+
+\icmltitlerunning{VSCA}
+
+\begin{document}
+\twocolumn[
+\icmltitle{Verifiable Semantic Credit Assignment for Language Model Post-Training}
+\begin{icmlauthorlist}
+\icmlauthor{Anonymous Author(s)}{anon}
+\end{icmlauthorlist}
+\icmlaffiliation{anon}{Anonymous Institution}
+\icmlcorrespondingauthor{Anonymous Author(s)}{anonymous@anonymous.com}
+\icmlkeywords{language model post-training, selective supervision, verification, factuality, reasoning}
+\vskip 0.3in
+]
+\printAffiliationsAndNotice{}
+\makeatletter
+\chead{\small\bfseries VSCA}
+\makeatother
+
+\begin{abstract}
+Supervised fine-tuning assigns loss to response tokens without distinguishing tokens that determine whether an answer is correct from tokens that primarily affect its surface realization. We propose \vsca, a selective post-training framework for verifiable tasks that connects token-level optimization to claim-level correctness. \vsca identifies verified claims, constructs minimally modified counterfactuals, and uses verification outcomes to estimate whether changing a claim invalidates a response or reasoning step. This task-grounded semantic signal is combined with a learning-difficulty signal to select complete evidence-bearing spans for supervised loss; an optional contrastive objective further prefers verified spans over their incorrect alternatives. The proposal targets mathematical reasoning and structured factual question answering, where deterministic or independently validated verification is practical. We specify controlled comparisons against uniform fine-tuning, loss-based selection, attention-based semantic selection, and matched-span controls to test whether counterfactual verification contributes value beyond existing token-selection heuristics.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+Supervised fine-tuning (SFT) adapts pretrained language models to instruction following, factual question answering, and mathematical reasoning. Conventional SFT minimizes negative log-likelihood over every target token. This uniform treatment does not distinguish tokens that determine an answer's factual or logical correctness from tokens that mainly affect wording. A single incorrect number, negation, or entity may invalidate an otherwise fluent response, while several alternative phrasings can express the same valid conclusion.
+
+Recent work shows that token-level supervision need not be allocated uniformly. Selective Language Modeling uses the difference between a student's token loss and a reference model's loss to identify useful training signals \citep{rho1}. Token Cleaning studies token quality through the influence of model updates \citep{tokenCleaning}, while ssToken combines retrospective loss differences with attention-derived semantic importance \citep{ssToken}. These methods motivate selective supervision, but token difficulty, influence, and attentional salience do not directly establish whether a token changes the correctness of a response.
+
+Consider the claim ``Paris is the capital of France.'' Replacing \emph{Paris} with \emph{Lyon} changes a correct statement into an incorrect one, whereas a paraphrase of ``is the capital of'' can preserve the underlying fact. Loss- and attention-based scores may prioritize either change depending on model confidence or attention patterns. This creates a mismatch between token-level loss allocation and the claim- or answer-level criteria used to evaluate many downstream tasks. The mismatch is particularly salient in structured reasoning: a solution can contain many predictable tokens yet depend on a small set of numerical values, operators, or intermediate claims.
+
+We investigate whether \emph{verifiable semantic consequences} provide a complementary signal for selective language-model post-training. Our central hypothesis is that spans associated with answer-critical claims should receive different treatment from spans whose controlled modification leaves task correctness unchanged. Semantic importance and learning difficulty remain distinct: an easy token can be essential, and a difficult token can be incidental.
+
+We propose 	extbf{Verifiable Semantic Credit Assignment} (\vsca), a framework for supervised post-training on tasks with reliable verifiers. Given an instruction, a verified target response, and task-specific evidence, \vsca extracts verifiable claims, aligns them to token spans, and constructs controlled counterfactuals. A counterfactual is useful only when it changes a claim while preserving its context and has a determinate verification outcome. The resulting verification signal is combined with token-level learning difficulty to allocate supervised loss. An optional contrastive objective teaches the model to prefer a verified span to a minimally altered, verifiably incorrect alternative.
+
+The paper makes four proposed contributions:
+\begin{itemize}
+  \item a verification-grounded definition of token-span importance based on controlled changes in claim or answer correctness;
+  \item a selective SFT objective that combines this semantic signal with a conventional learning signal;
+  \item counterfactual contrastive supervision for discriminating verified spans from minimally altered incorrect alternatives; and
+  \item a controlled evaluation protocol that can distinguish verification-derived gains from benefits of generic span selection or extra supervision.
+\end{itemize}
+The goal is not merely to reduce the number of supervised tokens. Rather, it is to test whether a limited post-training budget can be allocated according to verifiable semantic consequences.
+
+\section{Related Work}
+\label{sec:related}
+\paragraph{Selective token supervision.} Rho-1 introduced selective language modeling using student--reference excess loss \citep{rho1}. Token Cleaning considers fine-grained data selection through update influence \citep{tokenCleaning}, and ssToken combines historical loss with attention-based estimates of semantic importance \citep{ssToken}. TrimSFT uses token logit-gap weighting \citep{trimSFT}. \vsca is not a claim that semantic information in token selection is new. Its specific question is whether \emph{counterfactual changes in verified correctness} yield a useful selection signal beyond these alternatives.
+
+\paragraph{Concept- and process-level supervision.} Concept-level prediction and structured process-supervision approaches motivate moving beyond surface-form prediction \citep{beyondTokens,verifiableProcess}. They also show that verification alone is not a novelty claim. \vsca differs in using verification outcomes to assign token-span credit and in testing counterfactual verification against matched token-selection baselines.
+
+\section{Verifiable Semantic Credit Assignment}
+\label{sec:method}
+
+\subsection{Problem Formulation}
+We consider supervised post-training on instruction--response--evidence triples
+\begin{equation}
+  \dataset=\{(x_i,y_i,E_i)\}_{i=1}^{N},
+\end{equation}
+where $x_i$ is an instruction, $y_i=(y_{i,1},\ldots,y_{i,T_i})$ is a verified target response, and $E_i$ is task-specific evidence used for verification. An autoregressive model factorizes
+\begin{equation}
+ p_\theta(y_i\mid x_i)=\prod_{t=1}^{T_i}p_\theta(y_{i,t}\mid x_i,y_{i,<t}).
+\end{equation}
+Standard SFT minimizes
+\begin{equation}
+ \loss_{\mathrm{SFT}}=-\frac{1}{\sum_iT_i}\sum_{i=1}^{N}\sum_{t=1}^{T_i}\log p_\theta(y_{i,t}\mid x_i,y_{i,<t}).
+ \label{eq:sft}
+\end{equation}
+Equation~\eqref{eq:sft} does not distinguish tokens according to their contribution to a claim or final answer. We instead seek a fixed-budget selection policy informed by both learning difficulty and the semantic consequence of changing the represented information.
+
+\subsection{Claim Extraction and Verification}
+For each response, we identify atomic claims or reasoning steps
+\begin{equation}
+ \claims_i=\{c_{i,1},c_{i,2},\ldots,c_{i,m_i}\}.
+\end{equation}
+A claim may be a factual relation, numerical equality, intermediate calculation, or structured assertion that can be checked independently or under explicit context. Each claim is aligned to a character span and then to tokenizer offsets; its token span is $B_{i,j}$. Multi-token entities and numerical expressions are preserved as complete spans rather than as arbitrary subword fragments.
+
+A task-specific verifier
+\begin{equation}
+ V(x_i,y_i,E_i)\in[0,1] 
+ \label{eq:verifier}
+\end{equation}
+measures satisfaction of task correctness requirements. Initial experiments are restricted to deterministic or independently validated verification: arithmetic or symbolic evaluation for mathematical expressions, trusted evidence sources for structured facts, and task-specific consistency checks for intermediate reasoning. When available, final-answer and intermediate-step verification are maintained separately. Unverifiable claims are marked unknown, not false, and do not generate counterfactual labels; ordinary SFT or learning-based selection remains available for them.
+
+\subsection{Counterfactual Semantic Importance}
+For each verified claim $c_{i,j}$, we construct a controlled alternative $\tilde c_{i,j}$ that changes one semantically relevant component while preserving the surrounding context. For example, ``$12\times7=84$'' may become ``$12\times7=85$'', or a factual object may be replaced by an incompatible entity. Inserting the alternative into the original response yields $\tilde y_i^{(j)}$. We define binary semantic sensitivity as
+\begin{equation}
+ s^{\mathrm{claim}}_{i,j}=\ind\left[V(x_i,y_i,E_i)=1\;\wedge\;V(x_i,\tilde y_i^{(j)},E_i)=0\right].
+ \label{eq:claim-importance}
+\end{equation}
+For graded or separately checked verifiers, the binary indicator can be replaced by a predetermined weighted change in final-answer and intermediate-step correctness. A candidate is retained only when the original claim is verified, the counterfactual has a determinate outcome, and the substitution does not introduce unrelated changes. Consequently, the score is task-relative semantic sensitivity, not a universal measure of meaning or causal influence.
+
+Let $a_{i,j,t}\in[0,1]$ align token $t$ with the evidence-bearing span of claim $c_{i,j}$. Token-level semantic importance is
+\begin{equation}
+ s_{i,t}=\max_j a_{i,j,t}s^{\mathrm{claim}}_{i,j}.
+ \label{eq:token-importance}
+\end{equation}
+The maximum avoids rewarding duplicated extractions of overlapping claims. Tokens outside verified claim spans receive no additional semantic score, although they remain eligible through the learning signal.
+
+\subsection{Learning Difficulty and Span Selection}
+Let $\ell_{\theta,i,t}=-\log p_\theta(y_{i,t}\mid x_i,y_{i,<t})$ be the student's token loss and let $\ell_{\mathrm{ref},i,t}$ denote the corresponding loss from a fixed reference model. Following the motivation of selective language modeling, we define excess loss
+\begin{equation}
+ e_{i,t}=\ell_{\theta,i,t}-\ell_{\mathrm{ref},i,t},\qquad d_{i,t}=\operatorname{Normalize}(\max(0,e_{i,t})).
+ \label{eq:difficulty}
+\end{equation}
+The reference model uses only permitted training data and its losses can be cached. A historical loss-progress signal may replace it, but must be compared explicitly with self-modulated selection baselines.
+
+We assign each eligible token a score
+\begin{equation}
+ q_{i,t}=\alpha d_{i,t}+(1-\alpha)s_{i,t}+\gamma d_{i,t}s_{i,t},
+ \label{eq:selection}
+\end{equation}
+where $\alpha\in[0,1]$ balances difficulty and semantic importance and $\gamma\geq0$ controls their interaction. Under a predetermined budget $K$, the policy selects the highest-scoring tokens subject to complete-span constraints, yielding $m_{i,t}\in\{0,1\}$. A selected claim must include all tokens needed to express its evidence-bearing unit. Examples without verified claims fall back to $d_{i,t}$, and minimum per-example coverage can prevent a response from receiving no supervision. Scores are fixed during a gradient update.
+
+\subsection{Selective and Contrastive Objectives}
+The selective SFT objective is
+\begin{equation}
+ \loss_{\mathrm{select}}=-\frac{\sum_i\sum_t m_{i,t}\log p_\theta(y_{i,t}\mid x_i,y_{i,<t})}{\sum_i\sum_t m_{i,t}+\epsilon}.
+ \label{eq:selective}
+\end{equation}
+All target tokens remain in their original positions for autoregressive conditioning; masking changes loss attribution, not sequence computation. A reduced supervised-token count should therefore not be treated as an automatic reduction in FLOPs or wall-clock time.
+
+For a verified span $z_{i,j}$ and counterfactual $\tilde z_{i,j}$ sharing prefix $h_{i,j}$, define the length-normalized log score
+\begin{equation}
+ S_\theta(z\mid h)=\frac{1}{|z|}\log p_\theta(z\mid h).
+\end{equation}
+The counterfactual contrastive loss is
+\begin{equation}
+ \loss_{\mathrm{cf}}=-\frac{1}{|\mathcal P|}\sum_{(z,\tilde z,h)\in\mathcal P}\log \sigma\left(\frac{S_\theta(z\mid h)-S_\theta(\tilde z\mid h)}{\tau}\right),
+ \label{eq:contrastive}
+\end{equation}
+where $\mathcal P$ is the set of verified controlled pairs and $\tau$ is a temperature. It is applied only when the two spans have a common prefix and a verified interpretation. The complete objective is
+\begin{equation}
+ \loss_{\mathrm{VSCA}}=\loss_{\mathrm{select}}+\lambda_{\mathrm{cf}}\loss_{\mathrm{cf}}.
+ \label{eq:full-objective}
+\end{equation}
+Setting $\lambda_{\mathrm{cf}}=0$ removes contrastive training; setting the semantic contribution to zero recovers learning-signal selection; a full mask with no contrastive term recovers conventional SFT.
+
+\section{Experiments}
+\label{sec:experiments}
+We evaluate whether allocating supervision according to verifiable semantic consequences improves post-training beyond uniform and established selective objectives. This is a proposed protocol: all results, hyperparameters, and compute claims will be reported only after execution. The central hypothesis is that verified semantic importance complements learning difficulty; selecting fewer loss-bearing tokens is not presumed to reduce training computation.
+
+\subsection{Research Questions, Data, and Verification}
+\label{sec:experimental-design}
+We ask whether \vsca improves reasoning and factual correctness (RQ1), whether counterfactual semantic importance adds information beyond loss, attention, and answer-bearing spans (RQ2), whether contrastive counterfactual training helps beyond selection alone (RQ3), whether benefits generalize and tolerate imperfect verification (RQ4), and whether they persist under matched supervision and compute budgets (RQ5).
+
+The primary mathematical task is GSM8K \citep{gsm8k}; 10\% of its official training split is reserved for validation and the official test split is held out for final evaluation. We extract arithmetic expressions and associated results as candidate claims, but distinguish arithmetic validity from contextual validity; uncheckable steps are unknown, not automatically accepted. GSM8K-to-SVAMP transfer \citep{svamp} tests resistance to shallow arithmetic heuristics; MATH-500 is an optional, separately interpreted harder transfer benchmark.
+
+For structured factual and logical reasoning, we use ProofWriter \citep{proofwriter}. Instances comprise premises, a question, and a target answer with a structured or natural-language derivation. Conclusions and supporting derivations are checked against the supplied formal representation. Open-world unknown labels are retained, so absence of a proof is not falsity. Splits are made at the underlying-theory level, preventing related questions from crossing training and evaluation sets.
+
+Before training, we report examples with accepted claims, verified claims per response, aligned response-token coverage, counterfactual acceptance, ambiguous/unverifiable rates, and verification accuracy from a stratified manual audit of at least 200 candidate claim--counterfactual pairs per task family. All methods receive the same instruction--response examples; \vsca's claim annotations and counterfactuals are distinctive supervision whose generation cost is recorded.
+
+\subsection{Baselines and Implementation}
+\label{sec:baselines}
+We compare full SFT, random token selection, current-loss selection, Rho-style excess-loss selection, Token Cleaning, ssToken, answer-span selection, \vsca-Selection, and \vsca-Full. Random selection controls for fewer loss-bearing positions; answer-span selection controls for simply prioritizing numerical answers or structured conclusions. Rho-style selection applies student--reference excess loss to SFT and is not claimed as a reproduction of Rho-1; Token Cleaning uses published update-influence estimates where compatible; ssToken is the key semantic-aware baseline through historical loss and attention. A matched-span control uses the same span budget without a verification score.
+
+\vsca-Selection uses \Cref{eq:selection} without \Cref{eq:contrastive}; \vsca-Full adds the contrastive objective of \Cref{eq:full-objective}. A counterfactual-only condition applies contrastive learning to full-token SFT. All comparable conditions share examples, tokenizer, backbone, response format, trainable modules, and supervised-token budget. The primary backbone is Qwen2.5-1.5B \citep{qwen25}, initialized from the same base checkpoint and adapted with BF16 LoRA \citep{lora}. Pilot settings are rank 16, scaling 32, dropout 0.05, AdamW with initial learning rate $2\times10^{-4}$, maximum length 1,024, effective batch size 32, cosine decay, and at most three epochs. The primary selection ratio is 50\%, with a 25/50/75/100\% sweep; gradient accumulation supports a single A100. Each method receives the same validation-tuning allowance, and test sets are never used for tuning.
+
+\subsection{Budget Controls and Evaluation}
+\label{sec:metrics}
+We use three controls. \emph{Fixed input exposure} holds sequences and optimizer steps fixed, changing only loss positions and contrastive comparisons. \emph{Matched supervised-token budgets} compare methods at the same realized fraction of eligible targets; span-boundary adjustments and realized counts are reported. \emph{Matched computation} measures actual FLOPs, GPU-hours, wall-clock time, memory, and throughput, including reference scoring, extraction/alignment, counterfactual generation and verification, student training, and contrastive passes. One-time preprocessing is separated from online and amortized cost. Thus, loss masking is not represented as proportional FLOP savings, since tokens remain in the autoregressive context.
+
+The primary metric is greedy-decoded final-answer accuracy with a fixed prompt and generation limit. We also report claim correctness and verification coverage, fully valid traces and valid individual steps, token predictive loss, supervised-token counts, and end-to-end cost. Held-out counterfactual discrimination accuracy is the fraction of accepted pairs for which $S_\theta(z\mid h)>S_\theta(\tilde z\mid h)$; pairs are disjoint from training and stratified by factual, numerical, operator, and negation changes. Incorrect and unverifiable generated claims are reported separately.
+
+\subsection{Controlled Experiments, Robustness, and Reporting}
+\label{sec:ablations}
+The primary confirmatory comparison is \vsca-Selection versus Rho-style selection on GSM8K at 50\% supervision. Secondary predefined comparisons are \vsca-Full versus \vsca-Selection and \vsca-Selection versus ssToken. To isolate verification, we compare answer-only and unscored claim-span selection, equal scoring of accepted claims, and scores shuffled within task and claim-type strata. To isolate contrastive learning, we compare SFT, \vsca-Selection, SFT+CF, \vsca-Full, and a safe label-consistent random-contrast control; we never deliberately train a preference for false statements. Selection-only controls receive matched compute.
+
+Component ablations remove semantic importance (NoSem), excess loss (NoDifficulty), the interaction term (NoInteraction), or contrastive loss (NoCF); AnswerOnly and Shuffled are additional heuristic controls. We choose $\alpha$, $\gamma$, and $\lambda_{\mathrm{cf}}$ once per task family on predefined validation grids and separately examine counterfactual count, length, and type. Token analyses partition final answers, intermediate values, operators/relations, entities/arguments, negations/connectives, and non-claim text; they report loss, excess loss, semantic score, selection frequency, prediction change, and associations with held-out numerical, relation, and negation errors.
+
+Generalization includes GSM8K$\rightarrow$SVAMP, optional MATH-500, and ProofWriter held-out theories and depths, plus evaluation-only logical counterfactuals. Robustness corrupts training-time alignments, counterfactual acceptance, and claim coverage at $\eta\in\{0,0.05,0.10,0.20\}$; a conservative reliability-filtered variant is compared with SFT and Rho-style selection. These experiments assess sensitivity to imperfect annotations rather than assuming near-perfect verification.
+
+Initial experiments use three seeds; key comparisons expand to five after the protocol and hyperparameters are fixed. We report means, standard deviations, paired absolute differences on identical test examples, uncertainty intervals reflecting run and evaluation uncertainty, and realized training cost. Budget, subgroup, and token-category analyses are exploratory unless designated before final evaluation, and token observations from one trained model are not treated as independent replications. We record dataset versions and splits, checkpoints, tokenizer and prompt versions, optimization settings, masks, reference scoring, verification rules, and accepted/rejected counterfactuals with rejection reasons. The scope is limited to independently verifiable claims: local contrastive discrimination does not establish broad reasoning, and supervision efficiency may coexist with higher end-to-end cost.
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+\vsca is a proposed method rather than an implemented or experimentally validated contribution. Its effectiveness, generality, and computational value remain empirical questions. Reliable verification constrains the initial scope and may introduce coverage bias: unverifiable claims receive no counterfactual label, while poor claim extraction or span alignment can corrupt the semantic signal. Controlled counterfactuals also require care to avoid grammatical artifacts, unintended changes, or tokenization confounds.
+
+The contrastive objective should not be interpreted as proof that a model has learned the underlying reasoning process. It only encourages a locally specified preference between a verified span and a controlled incorrect alternative. Likewise, a positive result would establish neither universal semantic importance nor causal understanding. The intended claim is narrower: on tasks with reliable verifiers, counterfactual correctness may provide a useful token-level credit-assignment signal beyond difficulty, attention, influence, or undifferentiated span selection.
+
+\section{Conclusion}
+We introduced \vsca, a framework for selective language-model post-training that uses controlled counterfactual verification to connect token-span supervision with claim-level correctness. The framework combines a task-grounded semantic sensitivity signal with learning difficulty, optionally adds counterfactual contrastive supervision, and specifies ablations that isolate its sources of value. Its key research question is whether verification-grounded credit assignment can improve factual and reasoning correctness under a controlled supervision budget.
+
+\bibliography{example_paper}
+\bibliographystyle{icml2025}
+\end{document}

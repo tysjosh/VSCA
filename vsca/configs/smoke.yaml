@@ -1,0 +1,24 @@
+# Tiny end-to-end check that every code path runs (not a scientific run). CPU only.
+device: cpu
+model_name: HuggingFaceTB/SmolLM2-135M
+lora_r: 4
+lora_alpha: 8
+max_len: 384
+epochs: 1
+micro_bs: 2
+eff_bs: 4
+lr: 2.0e-4
+limit_train: 8
+limit_val: 4
+limit_test: 4
+k: 2
+M: 2
+B: 2
+h_min: 0.0
+max_rollout_tokens: 48
+max_span_tokens: 12
+cert_bs: 8
+cert_block: 4
+eval_bs: 4
+gen_max_new: 48
+refresh: once

@@ -1,0 +1,28 @@
+# Paper defaults (Section 4.4). Override per run with --set key=value.
+model_name: Qwen/Qwen2.5-1.5B
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_targets: all-linear
+max_len: 1024
+epochs: 3
+micro_bs: 4
+eff_bs: 32
+lr: 2.0e-4          # tuned per method on {5e-5, 1e-4, 2e-4, 4e-4}
+warmup_ratio: 0.03
+data_dir: data
+val_frac: 0.1
+limit_val: 500      # validation subset used for per-epoch model selection
+# VSCA certification
+k: 4
+M: 4
+B: 4
+h_min: 0.5
+refresh: epoch
+max_rollout_tokens: 320
+max_span_tokens: 48
+rollout_backend: vllm  # certification generation (needs CUDA + .venv-vllm); hf is the fallback
+cert_bs: 256         # HF backend only: sequences per generate call
+cert_block: 256      # examples batched together (resume granularity)
+eval_bs: 32
+gen_max_new: 400

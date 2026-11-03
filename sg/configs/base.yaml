@@ -1,0 +1,38 @@
+# Paper defaults (Section III-E). Override per run with --set key=value.
+dataset: cifar100
+data_dir: data
+split_seed: 1234
+val_frac: 0.1
+# training recipe
+epochs: 200
+batch_size: 128
+lr: 0.1
+momentum: 0.9
+nesterov: true
+weight_decay: 5.0e-4   # placeholder; selected per budget from {1e-4, 5e-4, 1e-3} (select_wd)
+crop_pad: 4
+eval_batch_size: 512
+rho: 0.5               # placeholder; selected once from {0.25, 0.5, 1} at 100% (select_rho)
+amp: true
+num_workers: 4
+save_model: true
+# SimCLR extractor (D7)
+simclr_epochs: 500
+simclr_batch_size: 512
+simclr_lr_per256: 0.06
+simclr_wd: 5.0e-4
+simclr_temperature: 0.5
+simclr_proj_dim: 128
+# partitions (D8)
+partition_seed: 0
+n_groups: 20
+n_random: 19
+n_spectrum: 19
+search_iters: 20000
+search_restarts: 20
+# probes / strata
+knn_k: 20
+probe_linear_iters: 500
+probe_l2: 1.0e-4
+probe_ref_budget: 0.1
+hard_frac: 0.25

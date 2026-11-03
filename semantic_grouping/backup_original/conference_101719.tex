@@ -1,0 +1,127 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\begin{document}
+
+\title{When Does Semantic Grouping Change Fine-Grained Learning Difficulty?}
+\author{\IEEEauthorblockN{Anonymous Authors}}
+\maketitle
+
+\begin{abstract}
+Fine-grained image classification requires separating visually similar classes, yet the value of semantic organization as auxiliary supervision remains unclear. This paper presents a controlled empirical protocol for determining whether curated semantic grouping changes fine-grained learning difficulty on CIFAR-100. Using a shared ResNet-18 backbone, we compare a curated 20-group hierarchy with independent cross-entropy baselines, balanced random groups, feature-derived visual groups, flat fine-label auxiliaries, and a hierarchy applied only at the final residual stage. All conditions use matched training, validation, and labeled-data budgets. We assess early coarse- and fine-class separability, final fine-class accuracy, k-nearest-neighbor probe accuracy, neighbor purity, and within- versus across-superclass errors. Independent difficulty stratification prevents regression-to-the-mean when estimating intervention effects. The design tests whether semantic grouping improves coarse discrimination beyond visual organization, interferes with sibling-class separation, or becomes more useful under limited labeled data. The resulting evidence will distinguish genuine semantic benefit from generic auxiliary supervision and visual grouping effects.
+\end{abstract}
+
+\begin{IEEEkeywords}
+semantic hierarchy, auxiliary supervision, fine-grained classification, representation learning, learning difficulty
+\end{IEEEkeywords}
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Question and Competing Hypotheses}
+We study whether the semantic content and placement of intermediate supervision alter the accessibility of fine-grained information, rather than assuming that a hierarchy uniformly makes examples easier. We distinguish three outcomes: early coarse-class separability, early fine-class separability, and final fine-class accuracy. An intervention can improve the first outcome while leaving the second unchanged or making sibling classes harder to distinguish.
+
+We test three falsifiable hypotheses. \textbf{H1 (coarse-semantic benefit)} predicts that the true hierarchy improves early coarse-class separability beyond a visually matched grouping. \textbf{H2 (fine-grained interference)} predicts that early coarse supervision increases within-parent fine-class confusion or reduces fine-class margins. \textbf{H3 (data-scarcity interaction)} predicts that the true hierarchy has a larger advantage over matched controls as the labeled-data budget decreases.
+
+\subsection{Grouping Interventions}
+All methods use the same ResNet-18 backbone and CIFAR-100 fine labels. Table~\ref{tab:interventions} defines the interventions. CE-A and CE-B are independent cross-entropy models: CE-A defines difficulty strata and CE-B is the independent baseline, preventing regression-to-the-mean from being mistaken for an intervention effect. True-Hier is the main treatment. Random-Hier controls for group count and auxiliary loss. Visual-Cluster tests whether effects are explained by visually learned grouping. Flat-Aux controls for generic intermediate deep supervision, and Final-Hier isolates where hierarchy supervision is applied.
+
+\begin{table}[t]
+\caption{Grouping interventions.}
+\label{tab:interventions}
+\centering
+\footnotesize
+\begin{tabular}{p{1.25cm}p{2.0cm}p{1.5cm}}
+\toprule
+Method & Auxiliary labels & Head placement \cr
+\midrule
+CE-A / CE-B & None & None \cr
+True-Hier & 20 curated groups & Stages 2, 3 \cr
+Random-Hier & 20 balanced random groups & Stages 2, 3 \cr
+Visual-Cluster & 20 feature-derived groups & Stages 2, 3 \cr
+Flat-Aux & 100 fine labels & Stages 2, 3 \cr
+Final-Hier & 20 curated groups & Final residual stage \cr
+\bottomrule
+\end{tabular}
+\end{table}
+
+Visual-Cluster is constructed before experimental training from class centroids produced by a separate frozen feature extractor. A balanced clustering procedure assigns five classes to each group. This is not a claim of a nonsemantic control: visual similarity may carry semantic information. Instead, the contrast tests whether curated semantic grouping adds value beyond data-driven visual structure.
+
+\subsection{Training and Selection}
+For an auxiliary method, the training objective is
+\begin{equation}
+\mathcal{L}=\mathcal{L}_{\mathrm{fine}}+\lambda\mathcal{L}_{\mathrm{aux}}.
+\label{eq:objective}
+\end{equation}
+The contribution is the controlled analysis of grouping content and placement, not this loss. Every model family receives the same validation-selection budget. We first select common backbone learning-rate and weight-decay ranges with CE, then allocate every method the same number of validation-evaluated configurations. Auxiliary methods use that budget to search \(\lambda\); CE uses it for optimizer alternatives. Final comparisons are made once on held-out test data.
+
+\subsection{Independent Difficulty Stratification}
+For each labeled-data regime, CE-A assigns every held-out example to a difficulty group. CE-B and every intervention are then evaluated on precisely those groups. For a metric \(M\),
+\begin{equation}
+\begin{aligned}
+\Delta_{\mathrm{null}} &= M(\mathrm{CE\! -\!B})-M(\mathrm{CE\! -\!A}),\\
+\Delta_{\mathrm{hier}} &= M(\mathrm{True\! -\!Hier})-M(\mathrm{CE\! -\!B}).
+\end{aligned}
+\label{eq:independent-null}
+\end{equation}
+The first contrast estimates apparent improvement caused by selecting difficult cases with CE-A; the second estimates the intervention against an independent baseline. Multiple reference/comparator splits are aggregated so that conclusions do not depend on one unfavorable reference model.
+
+\subsection{Representation Measures}
+We attach fine-class k-nearest-neighbor probes to all eight ResNet residual blocks. Let \(\hat y^{(1)},\ldots,\hat y^{(8)}\) be probe predictions and \(\hat y^{(9)}\) the trained classifier prediction. Prediction depth is
+\begin{equation}
+\operatorname{PD}(x)=\min\left\{\ell\in\{1,\ldots,9\}:\hat y^{(j)}(x)=\hat y^{(9)}(x)\;\forall j\geq\ell\right\}.
+\label{eq:pd}
+\end{equation}
+Depth nine means no earlier probe sustains agreement with the final classifier. Because PD is a coarse, intervention-sensitive outcome, we also report blockwise fine-class k-NN accuracy, coarse-category probe accuracy, and true-class neighbor purity, the fraction of \(k\) neighbors with the ground-truth fine label.
+
+Primary analyses include all held-out CE-A-stratified examples; they do not condition on the treated model being correct. We report final accuracy, PD, and rank- or probability-based true-class discrimination. Both-correct analyses are descriptive only. For errors, we report the fraction assigned to another class in the true superclass and compare it with CE-B and the uniform-label reference \(4/99\).
+
+\section{Experimental Design}
+\label{sec:experiments}
+
+\subsection{Labeled-Data and Optimization Budgets}
+Each regime draws a stratified subset from CIFAR-100's official training partition, reserving 10\% of the total labeled budget for validation. The validation allocation is part of the budget, not additional supervision (Table~\ref{tab:budgets}). Budgets are nested where feasible. We use fixed epochs for primary within-fraction comparisons so every method sees the same images the same number of times, and report a fixed-step sensitivity analysis for essential comparisons to separate label scarcity from optimization exposure.
+
+\begin{table}[t]
+\caption{Labeled-data budgets.}
+\label{tab:budgets}
+\centering
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+Total budget & Training & Validation \cr
+\midrule
+10\%  & 4,500  & 500 \cr
+25\%  & 11,250 & 1,250 \cr
+50\%  & 22,500 & 2,500 \cr
+100\% & 45,000 & 5,000 \cr
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Confirmatory Experiments}
+\textbf{Experiment A: semantic versus matched grouping.} At 25\% and 100\% budget, compare True-Hier with CE-B, Visual-Cluster, Random-Hier, Flat-Aux, and Final-Hier. Primary outcomes are CE-A-defined hard-example fine-class accuracy, fine-class PD, and neighbor purity. The key contrast is True-Hier versus Visual-Cluster.
+
+\textbf{Experiment B: data-scarcity interaction.} At 10\%, 25\%, 50\%, and 100\% budget, compare True-Hier, CE-B, and Visual-Cluster; include Flat-Aux at the lowest and highest budget. Estimate method-by-budget interactions separately for accuracy and PD using paired training runs.
+
+\textbf{Experiment C: coarse benefit versus fine interference.} At 25\% and 100\% budget, inspect all residual blocks. Measure coarse-category probe accuracy, fine-class k-NN accuracy, true-class neighbor purity, within-superclass errors, across-superclass errors, and final fine-class accuracy. This test can support a mechanistic conclusion even if final accuracy gains are small.
+
+\subsection{Inference and Decision Rules}
+Principal comparisons use five paired training seeds and, initially, three independent visual or random grouping draws. If results depend strongly on a grouping draw, we increase the number of draws rather than treating each training run as independent evidence. The preregistered primary contrast is
+\begin{equation}
+\begin{aligned}
+\Delta_{\mathrm{primary}} ={}& \operatorname{Acc}_{\mathrm{hard}}(\mathrm{True\! -\!Hier})\\
+&-\operatorname{Acc}_{\mathrm{hard}}(\mathrm{Visual\! -\!Cluster}).
+\end{aligned}
+\end{equation}
+at 25\% budget. We report confidence intervals for all contrasts. For interpretation, an improvement below one percentage point in hard-example accuracy is not a strong positive headline unless accompanied by a robust, unexpected mechanistic effect.
+
+\subsection{Exploratory Extensions}
+Long-tailed CIFAR-100, 10- and 50-group sensitivity, confusion-derived hierarchies, and pretrained-backbone fine-tuning are exploratory. Long-tailed analyses compare tail classes with head-class siblings against those whose entire superclass is underrepresented and include a conventional class-reweighting or logit-adjustment baseline.
+
+\section{Discussion}
+The design tests whether curated semantic hierarchies offer measurable value beyond visual grouping and ordinary deep supervision in making difficult examples correctly classifiable under limited labels. It deliberately permits null and negative outcomes: better early coarse separation may coexist with unchanged or worse fine-grained discrimination. This separation avoids the unsupported claim that ontologies generally make hard examples easy.
+
+\end{document}

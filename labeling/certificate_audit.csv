@@ -1,0 +1,1266 @@
+type,id,t,context,gold_token,alt_token,certificate,is_valid_manual
+claim,gsm8k-train-660,48,"Beth finds 4 + 2 = <<4+2=6>>6 ants.
+CeCe finds 4 x 2 = <<4*2=8>>8 ants.
+Duke finds 4 / 2 = <<4",/,//,"Beth finds 4 + 2 = <<4+2=6>>6 ants.
+CeCe finds 4 x 2 = <<4*2=8>>8 ants.
+Duke finds 4 / 2 = <<4//2=2>>2 ants.
+The four children find 4 + 6 + 8 + 2 = <<4+6+8+2=20>>20 ants.
+#### 20",
+claim,gsm8k-train-156,86,"The juice was two times more expensive than the sandwich, so it was 4 * 2 = $<<2*4=8>>8.
+The juice and the sandwich in total were a cost of 4 + 8 = $<<4+8=12>>12.
+So the cost of one bottle of milk was 75/100 * 12 = $<<75/1",0,/,"The juice was two times more expensive than the sandwich, so it was 4 * 2 = $<<2*4=8>>8.
+The juice and the sandwich in total were a cost of 4 + 8 = $<<4+8=12>>12.
+So the cost of one bottle of milk was 75/100 * 12 = $<<75/1/100*12=9>>9.
+In total for all the food, George paid 12 + 9 = $<<12+9=21>>21.
+#### 21",
+claim,gsm8k-train-264,101,"On weekdays it earns $600/weekday * 5 weekdays = $<<600*5=3000>>3000
+During the weekend it earns twice as much each day so it makes ($600 * 2)/weekend day * 2 weekend days = $<<(600*2)*2=2400>>2400
+Every week it earns $3000 + $2400 = $<<",3,2,"On weekdays it earns $600/weekday * 5 weekdays = $<<600*5=3000>>3000
+During the weekend it earns twice as much each day so it makes ($600 * 2)/weekend day * 2 weekend days = $<<(600*2)*2=2400>>2400
+Every week it earns $3000 + $2400 = $<<2400+3000=5400>>5400
+By the end of the month, it earns $5400/week * 4 weeks = $21600
+#### 21600",
+claim,gsm8k-train-67,25,Jesse runs 2 miles in the first three days because 3 x (2/3) = <<3*(2,/,)/,"Jesse runs 2 miles in the first three days because 3 x (2/3) = <<3*(2)/3=2>>2
+Jesse has 18 miles left to run because 30 - 10 - 2 = <<30-10-2=18>>18
+Jesse has to run an average of 6 miles a day because 18 / 3 = <<18/3=6>>6
+Mia runs 12 miles over the first four days because 4 x 3 = <<4*3=12>>12
+She has 18 miles left to run because 30 - 12 = <<30-12=18>>18
+She has to run six miles a day because 18 / 3 = <<18/3=6>>6
+The total they both have to run is <<12=12>>12 miles a day
+The average they have to run per day on average is 6 miles because 12 / 2 = <<12/2=6>>6
+#### 6",
+claim,gsm8k-train-530,18,Each person gets 42 cookies / 7 people = <<42/7=,6, ,"Each person gets 42 cookies / 7 people = <<42/7= 6>>6 cookies.
+Each person gets 63 pieces of candy / 7 people = <<63/7=9>>9 pieces of candy.
+Each person gets 21 brownies / 7 people = <<21/7=3>>3 brownies.
+Each person will get 6 + 9 + 3 = <<6+9+3=18>>18 desserts.
+#### 18",
+claim,gsm8k-train-1085,69,"Her siblings have brought a total of 4 siblings * 2 suitcases each = <<4*2=8>>8 suitcases.
+Her parents have brought 2 parents * 3 suitcases each = <<2*3=6>>6 suitcases.
+This is a total of 8 + 6 = <<8+6=",1, ,"Her siblings have brought a total of 4 siblings * 2 suitcases each = <<4*2=8>>8 suitcases.
+Her parents have brought 2 parents * 3 suitcases each = <<2*3=6>>6 suitcases.
+This is a total of 8 + 6 = <<8+6= 14>>14 suitcases.
+#### 14",
+claim,gsm8k-train-350,54,"Chandler has sold 3 rolls + 4 rolls + 3 rolls = <<3+4+3=10>>10 rolls.
+Chandler still needs to sell 12 rolls – 10 rolls = <<12-10=2",>>, >>,"Chandler has sold 3 rolls + 4 rolls + 3 rolls = <<3+4+3=10>>10 rolls.
+Chandler still needs to sell 12 rolls – 10 rolls = <<12-10=2 >>2 rolls.
+#### 2",
+claim,gsm8k-train-586,60,"If Harvey ran 8 more miles, then he ran a total of 12 miles + 8 miles = <<12+8=20>>20 miles.
+The two friends ran a total of 20 miles + 12 miles = <<20+12=",3, ,"If Harvey ran 8 more miles, then he ran a total of 12 miles + 8 miles = <<12+8=20>>20 miles.
+The two friends ran a total of 20 miles + 12 miles = <<20+12= 32>>32 miles
+#### 32",
+claim,gsm8k-train-966,143,"ylor's party.
+Combined, there were 4n+n = 240 people at both parties.
+This translates to 5n=240.
+The total number of people at Taylor's party is n=240/5
+There were n=<<48=48>>48 people at Taylor's party.
+Since Ryan's party was 4 times as huge as Taylor's party, at Ryan's party, there were 48*4 = <<4",8, *,"To get the number of people at Taylor's party, we'll assume there were n people at his party.
+The total number of people at Ryan's party is 4*n, four times the number of attendees at Taylor's party.
+Combined, there were 4n+n = 240 people at both parties.
+This translates to 5n=240.
+The total number of people at Taylor's party is n=240/5
+There were n=<<48=48>>48 people at Taylor's party.
+Since Ryan's party was 4 times as huge as Taylor's party, at Ryan's party, there were 48*4 = <<4 * 48=192>>192 people.
+#### 192",
+claim,gsm8k-train-300,17,Jenny needs to print 7*25= <<7*25=,1, ,"Jenny needs to print 7*25= <<7*25= 175>>175 pages.
+This will cost 175*$.10 =$<<175*.10=17.5>>17.5.
+The pens will cost 7*$1.50=$<<7*1.5=10.50>>10.50.
+In total, she will spend $17.5+$10.5=$<<17.5+10.5=28>>28.
+Since she pays with 2 twenty dollar bills she pays with 2*20=<<2*20=40>>40 dollars.
+Thus, she will get $40-$28=$<<40-28=12>>12 in change.
+#### 12",
+claim,gsm8k-train-997,101,"If the dog eats two eyes and Oomyapeck eats 22 eyes, then there are a total of 2+22=<<2+22=24>>24 eyes.
+With 2 eyes per fish, 24 eyes represent 24/2=<<24/2=12>>12 fish.
+If they split that number of fish equally amongst the three of them, then each of them will be given 12/3=<<",1, ,"If the dog eats two eyes and Oomyapeck eats 22 eyes, then there are a total of 2+22=<<2+22=24>>24 eyes.
+With 2 eyes per fish, 24 eyes represent 24/2=<<24/2=12>>12 fish.
+If they split that number of fish equally amongst the three of them, then each of them will be given 12/3=<< 12/3=4>>4 fish to eat.
+#### 4",
+claim,gsm8k-train-516,89,"Max finished history in 20 * 2 = <<20*2=40>>40 minutes.
+Finishing geography took the most time, which is 40 * 3 = <<40*3=120>>120 minutes.
+In total, for all three subjects, Max needed 20 + 40 + 120 = <<20+40+120",=, =,"Max finished history in 20 * 2 = <<20*2=40>>40 minutes.
+Finishing geography took the most time, which is 40 * 3 = <<40*3=120>>120 minutes.
+In total, for all three subjects, Max needed 20 + 40 + 120 = <<20+40+120 = 180>>180 minutes.
+#### 180",
+claim,gsm8k-train-263,36,"He has 3*4=<<3*4=12>>12 trees
+So he has 12*5=<<12*5=60",>>, >>,"He has 3*4=<<3*4=12>>12 trees
+So he has 12*5=<<12*5=60 >>60 apples
+So he sells the apples for 60*.5=$<<60*.5=30>>30
+#### 30",
+claim,gsm8k-train-153,78,"The insurance covers 300*.75=$<<300*.75=225>>225
+So he had to pay 300-225=$<<300-225=75>>75
+The cats visit cost 120-60=$<<120-60=60",>>, >>,"The insurance covers 300*.75=$<<300*.75=225>>225
+So he had to pay 300-225=$<<300-225=75>>75
+The cats visit cost 120-60=$<<120-60=60 >>60
+So in total he paid 75+60=$<<75+60=135>>135
+#### 135",
+claim,gsm8k-train-133,78,"Out of the 40, 40 x 1/10 = <<40*1/10=4>>4 students are absent.
+So, 40 - 4 = <<40-4=36>>36 students are present in school.
+Out of the 36, 36 x 3/4 = <<36",*, *,"Out of the 40, 40 x 1/10 = <<40*1/10=4>>4 students are absent.
+So, 40 - 4 = <<40-4=36>>36 students are present in school.
+Out of the 36, 36 x 3/4 = <<36 * 3/4 = 27>>27 students are in the classroom.
+This means, 36 - 27 = <<36-27=9>>9 students are in the canteen.
+#### 9",
+claim,gsm8k-train-990,31,"Grace mowed lawns for 63 hours at $6/hour, so earned 63 * 6 = $<<63*6",=,=$,"Grace mowed lawns for 63 hours at $6/hour, so earned 63 * 6 = $<<63*6=$378>>378.
+Grace pulled weeds for 9 hours at $11/hour, so earned 9 * 11 = $<<9*11=99>>99.
+Grace put down mulch for 10 hours at $9/hour, so earned 10 * 9 = $<<10*9=90>>90.
+During September Grace earned $378 + $99 + $90 = $<<378+99+90=567>>567.
+#### 567",
+claim,gsm8k-train-57,12,Liza used 10/2 = <<10,/,*,"Liza used 10/2 = <<10*1/2=5>>5 kilograms of butter for the chocolate chip cookies.
+Then, she used 10/5 = <<10/5=2>>2 kilograms of butter for the peanut butter cookies.
+She used 5 + 2 = <<5+2=7>>7 kilograms of butter for the chocolate and peanut butter cookies.
+So, only 10 -7 = <<10-7=3>>3 kilograms of butter was left.
+Then, Liza used 3/3 = <<3/3=1>>1 kilograms of butter for the sugar cookies.
+Therefore, only 3-1 = <<3-1=2>>2 kilograms of butter were left.
+#### 2",
+claim,gsm8k-train-671,70,"The number of ripe mangoes from the tree is 3/5*400 = <<3/5*400=240>>240
+If Lindsay eats 60% of the ripe mangoes, she eats 60/100*240 = <<60/100",*, *,"The number of ripe mangoes from the tree is 3/5*400 = <<3/5*400=240>>240
+If Lindsay eats 60% of the ripe mangoes, she eats 60/100*240 = <<60/100 * 240=144>>144 mangoes.
+The total number of ripe mangoes remaining is 240-144 =<<240-144=96>>96
+#### 96",
+claim,gsm8k-train-17,213,"2 green hard hats.
+The total number of green hard hats that remained in the truck is 15-12 = <<15-12=3>>3
+In the truck, after some are taken, there were 3 green hard hats + 16 pink hard hats = <<3+16=19>>19 hard hats in the truck.
+Altogether, 19 green and pink hard hats + 24 yellow hards hats = <<19",+, +,"If there were 26 pink hard hats and Carl took away 4 pink hard hats, the number of pink hard hats that remained is 26-4 = <<26-4=22>>22
+John also took away 6 pink hard hats, leaving 22-6 = <<22-6=16>>16 pink hard hats in the truck.
+If John also took twice as many green hard hats as pink hard hats, he took 2*6 = <<6*2=12>>12 green hard hats.
+The total number of green hard hats that remained in the truck is 15-12 = <<15-12=3>>3
+In the truck, after some are taken, there were 3 green hard hats + 16 pink hard hats = <<3+16=19>>19 hard hats in the truck.
+Altogether, 19 green and pink hard hats + 24 yellow hards hats = <<19 + 24 = 43>>43 hard hats remained in the truck
+#### 43",
+claim,gsm8k-train-1098,11,Jeremey goes through 3+2=<<,3, ,"Jeremey goes through 3+2=<< 3+2=5 >>5 watermelons per week.
+Therefore, the watermelons will last him to 30/5=<<30/5=6>>6 weeks.
+#### 6",
+claim,gsm8k-train-121,264," total of 2+6 = <<2+6=8>>8 people were filling the truck now.
+Working at the rate of 250 blocks per person, the eight people filled the truck with 250*8 = <<250*8=2000>>2000 blocks in one hour.
+If there were 4000 blocks that still needed to be put into the truck, the 8 people took 4000/2000 = <<4000",/,//,"Stella and Twinkle filled up the truck at the rate of 250 blocks per hour per person, a total of 2*250 = <<250*2=500>>500 blocks per hour for both.
+After working for four hours, Stella and Twinkle had filled 4*500 = <<4*500=2000>>2000 blocks into the truck.
+The number of blocks they had to put into the truck for it to be full is 6000-2000 = <<6000-2000=4000>>4000
+When 6 more people joined Stella and Twinkle, a total of 2+6 = <<2+6=8>>8 people were filling the truck now.
+Working at the rate of 250 blocks per person, the eight people filled the truck with 250*8 = <<250*8=2000>>2000 blocks in one hour.
+If there were 4000 blocks that still needed to be put into the truck, the 8 people took 4000/2000 = <<4000//2000=2>>2 hours to fill the truck with the blocks.
+The total time it took to fill up the tank is 4+2 = <<4+2=6>>6 hours.
+#### 6",
+claim,gsm8k-train-657,46,"There are 60 minutes in an hour so 1 hour 20 minutes = (60+20) minutes = 80 minutes
+He will spend a total of 80+10 = <<",8, ,"There are 60 minutes in an hour so 1 hour 20 minutes = (60+20) minutes = 80 minutes
+He will spend a total of 80+10 = << 80+10=90>>90 minutes
+90 minutes is = (60/60) hours and 30 minutes = 1 hour 30 minutes = 0130 in 24-hr time
+He has to leave 0130 hours earlier than 0900 i.e. 0900-0130 = 0730 hours
+#### 730",
+claim,gsm8k-train-732,93,"One less than 5 is 5-1=<<5-1=4>>4.
+If one tarantula egg sac can contain 1000 tarantulas, then four egg sacs can hold 4*1000=4000 tarantula babies.
+If each tarantula baby has eight legs, the 4 egg sacs can contain 4000*8=<<4000",*,*(,"One less than 5 is 5-1=<<5-1=4>>4.
+If one tarantula egg sac can contain 1000 tarantulas, then four egg sacs can hold 4*1000=4000 tarantula babies.
+If each tarantula baby has eight legs, the 4 egg sacs can contain 4000*8=<<4000*(8)=32000>>32,000 baby tarantula legs.
+#### 32000",
+claim,gsm8k-train-1091,122,"e drinks 1/2 bottle a day and there are 24 bottles in a case so a case will last 24/.5 = <<24/.5=48>>48 days
+She needs enough to last her 240 days and 1 case will last her 48 days so she needs 240/48 = <<240/48=5>>5 cases
+Each case is on sale for $12.00 and she needs 5 cases so that's 12*5 = $<<12*5",=, =,"She drinks 1/2 bottle a day and there are 24 bottles in a case so a case will last 24/.5 = <<24/.5=48>>48 days
+She needs enough to last her 240 days and 1 case will last her 48 days so she needs 240/48 = <<240/48=5>>5 cases
+Each case is on sale for $12.00 and she needs 5 cases so that's 12*5 = $<<12*5 = 60>>60.00
+#### 60",
+claim,gsm8k-train-716,81,"Margaret has 100 * 0.75 = $0.75.
+Guy has $0.25 + $0.25 + $0.10 = $<<0.25+0.25+0.10=0.60>>0.60.
+Bill has 6 * $0.10 = $<<6",*, *,"Margaret has 100 * 0.75 = $0.75.
+Guy has $0.25 + $0.25 + $0.10 = $<<0.25+0.25+0.10=0.60>>0.60.
+Bill has 6 * $0.10 = $<<6 * 0.10=0.60>>0.60.
+Lance, Margaret, Guy and Bill have $0.70 + $0.75 + $0.60 + $0.60 = $<<0.70+0.75+0.60+0.60=2.65>>2.65.
+Thus they have $2.65 * 100 = <<2.65*100=265>>265 cents.
+#### 265",
+claim,gsm8k-train-227,61,"Starting with $100, he paid $20 to Colin, leaving him with $100-$20=$<<100-20=80>>80.
+Twice as much as $20 is 2*$20=$<<2*20=",4,<<,"Starting with $100, he paid $20 to Colin, leaving him with $100-$20=$<<100-20=80>>80.
+Twice as much as $20 is 2*$20=$<<2*20=<<2*20=40>>40.
+Thus, he paid $40 to Helen, leaving him with $80-$40=$<<80-40=40>>40.
+Half as much to Benedict as he had paid to Helen is $40/2=$<<40/2=20>>20.
+Thus, he paid $20 to Benedict, leaving him with $40-$20=$20 after paying off all debts.
+#### 20",
+claim,gsm8k-train-133,20,"Out of the 40, 40 x 1/10 = <<40",*,*(,"Out of the 40, 40 x 1/10 = <<40*(1/10)=4>>4 students are absent.
+So, 40 - 4 = <<40-4=36>>36 students are present in school.
+Out of the 36, 36 x 3/4 = <<36*3/4=27>>27 students are in the classroom.
+This means, 36 - 27 = <<36-27=9>>9 students are in the canteen.
+#### 9",
+claim,gsm8k-train-220,105,"Mr. Montero is traveling a total distance of 600 miles + 600 miles = <<600+600=1200>>1200 miles.
+There are 1200 miles / 400 miles = <<1200/400=3>>3 sets of 400 miles in 1200 miles.
+So Mr. Montero needs 20 gallons/set x 3 sets = <<20*",3,1,"Mr. Montero is traveling a total distance of 600 miles + 600 miles = <<600+600=1200>>1200 miles.
+There are 1200 miles / 400 miles = <<1200/400=3>>3 sets of 400 miles in 1200 miles.
+So Mr. Montero needs 20 gallons/set x 3 sets = <<20*1200/400=60>>60 gallons in all.
+Since his car has 8 gallons already, then he needs to add 60 gallons - 8 gallons = <<60-8=52>>52 gallons more.
+#### 52",
+claim,gsm8k-train-431,16,"For the humans in the house, there are 5 * 2 = <<",5, ,"For the humans in the house, there are 5 * 2 = << 5 * 2 = 10 >>10 legs
+Javier has a total of 2 + 1 = <<2+1=3>>3 four-legged pets
+For the pets in the house, there are 3 * 4 = <<3*4=12>>12 legs
+There are a total of 10 + 12 = <<10+12=22>>22 legs
+#### 22",
+claim,gsm8k-train-197,15,Half the people at the party is 16 / 2 = <<,1, ,"Half the people at the party is 16 / 2 = << 16 / 2 = 8 >>8 people.
+8 people at the party eat 1 1/2 rolls each, 8 x 1 1/2 = 12 dinner rolls eaten.
+8 people at the party eat 1/2 a roll each, 8 x 1/2 = <<8*1/2=4>>4 dinner rolls eaten.
+Combined, the people at the party ate 12 + 4 = <<12+4=16>>16 dinner rolls.
+There were originally 40 dinner rolls - 16 that got eaten = <<40-16=24>>24 dinner rolls leftover.
+#### 24",
+claim,gsm8k-train-938,19,"For 1 match won, Joe's team scored 1 * 3 = <<1*",3, ,"For 1 match won, Joe's team scored 1 * 3 = <<1* 3=3>>3 points.
+For 3 tied games, Joe's team scored 3 * 1 = <<3*1=3>>3 points.
+In total, Joe's team scored 3 + 3 = <<3+3=6>>6 points.
+For 2 games won, the first-place team scored 2 * 3 = <<2*3=6>>6 points
+For 2 tied games, the first-place team scored 2 * 1 = <<2*1=2>>2 points
+In total, the first-place team scored 6 + 2 = <<6+2=8>>8 points.
+The first-place team outscored Joe's team by 8 - 6 = <<8-6=2>>2 points.
+#### 2",
+claim,gsm8k-train-177,66,"He sold his car for 20000*.8=$<<20000*.8=16000>>16,000
+He bought the new car for 30,000*.9=$<<30000*.9=27000",>>, >>,"He sold his car for 20000*.8=$<<20000*.8=16000>>16,000
+He bought the new car for 30,000*.9=$<<30000*.9=27000 >>27,000
+That means he was out of pocket 27,000-16,000=$<<27000-16000=11000>>11,000
+#### 11000",
+claim,gsm8k-train-321,142,"Mike earned ten times more money than Fred, and since Fred earned $1000, Mike earned 10*1000 = $<<10*1000=10000>>10000 more than Fred.
+The total amount of money that Mike earned five months ago is $10000+$1000 = $<<10000+1000=11000>>11000
+Mikes salary has increased by 40/100*$11000 = $<<40/100*11000",=, =,"Five months ago, Mike earned ten times more money than Fred, and since Fred earned $1000, Mike earned 10*1000 = $<<10*1000=10000>>10000 more than Fred.
+The total amount of money that Mike earned five months ago is $10000+$1000 = $<<10000+1000=11000>>11000
+Mikes salary has increased by 40/100*$11000 = $<<40/100*11000 = 4400>>4400
+Mike's current salary is $11000 +$4400 = $<<11000+4400=15400>>15400
+#### 15400",
+claim,gsm8k-train-699,259,"50 students + 112 students + 108 students = <<150+112+108=370>>370 students
+Now find the total cost of one lunch $2.10 + $0.50 + $0.20 = $<<2.10+0.50+0.20=2.80>>2.80
+Now multiply that cost by the number of students to find the total cost for the school $2.80/student * 370 students = $<<2.80*370=1036",>>,>,"First find the total number of students in third grade 5 classes * 30 students/class = <<5*30=150>>150 students
+Then find the total number of students in fourth grade 4 classes * 28 students/class = <<4*28=112>>112 students
+Then find the total number of student in fifth grade 4 classes * 27 students/class = <<4*27=108>>108 students
+Now add the number of students in each grade to find the total number of students 150 students + 112 students + 108 students = <<150+112+108=370>>370 students
+Now find the total cost of one lunch $2.10 + $0.50 + $0.20 = $<<2.10+0.50+0.20=2.80>>2.80
+Now multiply that cost by the number of students to find the total cost for the school $2.80/student * 370 students = $<<2.80*370=1036>>1036
+#### 1036",
+claim,gsm8k-train-569,30,"The blue weights weigh 4*2=<<4*2=8>>8 pounds
+The green weights weigh 5*3=<<5",*,*(,"The blue weights weigh 4*2=<<4*2=8>>8 pounds
+The green weights weigh 5*3=<<5*(3)=15>>15 pounds
+The weights weigh 8+15=<<8+15=23>>23 pounds.
+The total is then 23+2=<<23+2=25>>25.
+#### 25",
+claim,gsm8k-train-299,31,Basil gets 1/2 in the morning and 1/2 at bedtime so she gets 1/2+1/2 = <<1,/,/(,"Basil gets 1/2 in the morning and 1/2 at bedtime so she gets 1/2+1/2 = <<1/(2)+1/(2)=1>>1 whole cookie
+Basil also gets 2 whole cookies during the day so all total she gets 2+1 =<<2+1=3>>3 whole cookies
+She needs cookies for 30 days and eats 3 a day so she needs 30*3 = <<30*3=90>>90 cookies
+Her cookies come 45 per box and she needs 90 cookies so she needs 90/45 = <<90/45=2>>2 boxes of cookies
+#### 2",
+claim,gsm8k-train-437,77,"A bag of feed is enough for 10 chickens because 20 / 2 = <<20/2=10>>10
+Each chicken costs $.2 to raise because 2 / 10 = <<2/10=.2>>.2
+Each chicken results in $1.3 of profit because 1.5 - .2 = <<",1,<<,"A bag of feed is enough for 10 chickens because 20 / 2 = <<20/2=10>>10
+Each chicken costs $.2 to raise because 2 / 10 = <<2/10=.2>>.2
+Each chicken results in $1.3 of profit because 1.5 - .2 = <<<<1.5-.2=1.3>>1.3
+He sells 50 chickens because 65 / 1.3 = <<65/1.3=50>>50
+#### 50",
+claim,gsm8k-train-617,91,"First figure out how many miles over the speed limit Mark was going: 75 mph - 30 mph = <<75-30=45>>45 mph
+Now figure out how much the per-mile fine is: $2/mph * 45 mph = $<<2*45=90>>90
+Now add that amount to the base fine: $90 + $50 = $<<",9,5,"First figure out how many miles over the speed limit Mark was going: 75 mph - 30 mph = <<75-30=45>>45 mph
+Now figure out how much the per-mile fine is: $2/mph * 45 mph = $<<2*45=90>>90
+Now add that amount to the base fine: $90 + $50 = $<<50+90=140>>140
+Now double that amount for being in a school zone: $140 * 2 = $<<140*2=280>>280
+Now figure out how much Mark owes his lawyer: $80/hour * 3 hours = $<<80*3=240>>240
+Now add the court costs, lawyer fees and fine: $240 + $300 + $280 = $<<240+300+280=820>>820
+#### 820",
+claim,gsm8k-train-95,148,"ickels because .25 / .05 = <<.25/.05=5>>5
+She gets 100 nickels from the bank because 20 x 5 = <<20*5=100>>100
+20 of the nickels are iron nickels because 100 x .20 = <<100*.20=20>>20
+80 of the nickels are regular because 100 - 20 = <<100-20=80>>80
+The iron nickels are worth $60 because 20 x 3 = <<20*",3, ,"A quarter is worth five nickels because .25 / .05 = <<.25/.05=5>>5
+She gets 100 nickels from the bank because 20 x 5 = <<20*5=100>>100
+20 of the nickels are iron nickels because 100 x .20 = <<100*.20=20>>20
+80 of the nickels are regular because 100 - 20 = <<100-20=80>>80
+The iron nickels are worth $60 because 20 x 3 = <<20* 3=60>>60
+The regular nickels are worth $4 because 80 x .05 = <<80*.05=4>>4
+Her money is now worth $64 because 60 + 4 = <<60+4=64>>64
+#### 64",
+claim,gsm8k-train-810,44,"Tyler gives away 21 / 3 = <<21/3=7>>7 CDs
+After giving away a third of his CDs, Tyler has 21 - 7 = <<21-7",=, =,"Tyler gives away 21 / 3 = <<21/3=7>>7 CDs
+After giving away a third of his CDs, Tyler has 21 - 7 = <<21-7 = 14>>14 CDs
+After buying new CDs, Tyler has 14 + 8 = <<14+8=22>>22 CDs
+#### 22",
+claim,gsm8k-train-536,20,First find the number of votes for the unicorn cake: 7 votes * 3 = <<7,*,*(,"First find the number of votes for the unicorn cake: 7 votes * 3 = <<7*(3)=21>>21 votes
+Then find the number of votes for the dragon cake: 25 votes + 7 votes = <<25+7=32>>32 votes
+Then add the number of votes for each cake to find the total number of votes: 21 votes + 32 votes + 7 votes = <<21+32+7=60>>60 votes
+#### 60",
+claim,gsm8k-train-726,14,Jed is 25 - 10 = <<25,-, -,"Jed is 25 - 10 = <<25 - 10 = 15>>15 years old now.
+So, Matt is 15 - 10 = <<15-10=5>>5 years old now.
+Thus, the sum of their present ages is 15 + 5 = <<15+5=20>>20.
+#### 20",
+claim,gsm8k-train-309,112,"The number of words that Carl can type per hour is 50 * 60 = <<50*60=3000>>3000 words.
+The number of words that Carl can type in 4 hours is 3000 * 4 = <<3000*4=12000>>12000 words.
+The number of words that Carl can type in 7 days is 12000 * 7 = <<12000*7=",8,<<,"The number of words that Carl can type per hour is 50 * 60 = <<50*60=3000>>3000 words.
+The number of words that Carl can type in 4 hours is 3000 * 4 = <<3000*4=12000>>12000 words.
+The number of words that Carl can type in 7 days is 12000 * 7 = <<12000*7=<<12000*7=84000>>84000 words.
+#### 84000",
+claim,gsm8k-train-196,44,"Herbert is 24 - 10 = <<24-10=14>>14 years old now.
+Thus, Herbert will be 14 + 1 = <<14+1",=, =,"Herbert is 24 - 10 = <<24-10=14>>14 years old now.
+Thus, Herbert will be 14 + 1 = <<14+1 = 15>>15 years old next year.
+#### 15",
+claim,gsm8k-train-639,118,"The 15 families own 15x2=<<15*2=30>>30 dogs.
+The 20 families own 20x1=<<20*1=20>>20 dogs.
+There are 50-15-20=<<50-15-20=15>>15 cat owners.
+The remaining families own 15x2=<<15*2=30>>30 cats.
+There are 30+20+30=<<30",+, +,"The 15 families own 15x2=<<15*2=30>>30 dogs.
+The 20 families own 20x1=<<20*1=20>>20 dogs.
+There are 50-15-20=<<50-15-20=15>>15 cat owners.
+The remaining families own 15x2=<<15*2=30>>30 cats.
+There are 30+20+30=<<30 + 20 + 30=80>>80 dogs and cats in the village.
+#### 80",
+claim,gsm8k-train-201,71,"He ate 14 apples the first two weeks because 14 x 1 = 14
+He ate 14 apples in the next three weeks because 14 = <<14=14>>14
+He ate 42 apples in the final two weeks because 14 x 3 = <<14*",3, ,"He ate 14 apples the first two weeks because 14 x 1 = 14
+He ate 14 apples in the next three weeks because 14 = <<14=14>>14
+He ate 42 apples in the final two weeks because 14 x 3 = <<14* 3=42>>42
+He ate 70 apples in total.
+He averaged 10 apples a week because 70 / 7 = <<70/7=10>>10
+#### 10",
+claim,gsm8k-train-757,92,"Mary fed Luna 1+1=2 cups of kibble.
+Frank fed Luna 1-cup plus twice 1-cup, or 1+2=3 cups of kibble.
+In total, they fed Luna 2+3=<<2+3=5>>5 cups of kibble.
+Thus, if the new bag held 12 cups of kibble, the next morning, 12-5=<<12",-,.-,"Mary fed Luna 1+1=2 cups of kibble.
+Frank fed Luna 1-cup plus twice 1-cup, or 1+2=3 cups of kibble.
+In total, they fed Luna 2+3=<<2+3=5>>5 cups of kibble.
+Thus, if the new bag held 12 cups of kibble, the next morning, 12-5=<<12.-5=7>>7 cups of kibble remained in the bag.
+#### 7",
+claim,gsm8k-train-1069,43,"Maria has 4 + 5 = <<4+5=9>>9 quarters.
+The number of dollars from the quarters is 9 * $0.25 = $<<9*0.25",=, =,"Maria has 4 + 5 = <<4+5=9>>9 quarters.
+The number of dollars from the quarters is 9 * $0.25 = $<<9*0.25 = 2.25>>2.25
+The number of dollars from the dimes is 4 * $0.10 = $<<4*0.10=0.40>>0.40
+The number of dollars from the nickels is 7 * $0.05 = $<<7*0.05=0.35>>0.35
+The total number of dollars is $2.25 + $0.40 + $0.35 = $<<2.25+0.40+0.35=3>>3
+#### 3",
+claim,gsm8k-train-1047,59,"Becky is four times younger than Eddie, which means she is 92 / 4 = <<92/4=23>>23 years old.
+Her mother is two times older than she, so it means Irene is 23 * 2 = <<23",*, *,"Becky is four times younger than Eddie, which means she is 92 / 4 = <<92/4=23>>23 years old.
+Her mother is two times older than she, so it means Irene is 23 * 2 = <<23 * 2=46>>46 years old.
+#### 46",
+claim,gsm8k-train-470,72,"Gary earned overtime, so he worked at least 40 hours. for which he was paid 40 hours * $12/hour = $<<40*12=480>>480 at his normal wage.
+This means that $696 - $480 = $<<696-480",=, =,"Gary earned overtime, so he worked at least 40 hours. for which he was paid 40 hours * $12/hour = $<<40*12=480>>480 at his normal wage.
+This means that $696 - $480 = $<<696-480 = 216>>216 was earned at his overtime wage.
+His overtime wage is 1.5 his normal wage, or $12 * 1.5 = $<<12*1.5=18>>18 per hour.
+So Gary worked $216 / $18 per hour = <<216/18=12>>12 hours' worth of overtime.
+So in total, Gary worked 40 hours + 12 hours = <<40+12=52>>52 hours that week.
+#### 52",
+claim,gsm8k-train-367,76,"Each employee needs $35,000-$20,000=$<<35000-20000=15000>>15,000 more per year.
+In total, Emily needs to pay $15,000*10=$<<15000*10=1",5,",","Each employee needs $35,000-$20,000=$<<35000-20000=15000>>15,000 more per year.
+In total, Emily needs to pay $15,000*10=$<<15000*10=1,50000>>150,000 extra.
+Emily will need to have a new salary of $1,000,000-$150,000=$<<1000000-150000=850000>>850,000 per year.
+#### 850,000",
+claim,gsm8k-train-841,74,"The total ratio for the number of cats and dogs that Heloise has is 10+17 = <<10+17=27>>27
+From the ratios, the fraction representing the number of dogs is 10/27, and this represents 10/27*189 = <<10/27",*,*(,"The total ratio for the number of cats and dogs that Heloise has is 10+17 = <<10+17=27>>27
+From the ratios, the fraction representing the number of dogs is 10/27, and this represents 10/27*189 = <<10/27*(189)=70>>70 dogs.
+If Heloise gives 10 of her dogs to Janet, she remains with 70-10 = <<70-10=60>>60 dogs.
+#### 60",
+claim,gsm8k-train-886,41,"Jack's mother asked him to buy 2 * 4 = <<2*4=8>>8 bottles of water.
+Thus Jack bought 4 + 8 = <<4+8=12",>>, >>,"Jack's mother asked him to buy 2 * 4 = <<2*4=8>>8 bottles of water.
+Thus Jack bought 4 + 8 = <<4+8=12 >>12 bottles of water in total.
+Altogether, the bottles of water cost 12 * $2 = $<<12*2=24>>24.
+The cheese cost 1/2 * $10 = $<<10*0.5=5>>5.
+So Jack spent $24 + $5 = $<<24+5=29>>29 on water and cheese.
+Since he started with $100, he now has $100 - $29 = $<<100-29=71>>71 left.
+#### 71",
+claim,gsm8k-train-88,44,"Last year: 86 geckos
+2 years ago: 86(2)=172
+Total number of geckos sold 86+172=<<86+1",7,*,"Last year: 86 geckos
+2 years ago: 86(2)=172
+Total number of geckos sold 86+172=<<86+1*172=258>>258 geckos
+#### 258",
+claim,gsm8k-train-297,60,"At 7 days a week, it takes Bert 2 * 7 = <<2*7=14>>14 days of daily crossword puzzles to use up a pencil.
+Since Bert does one puzzle a day, each crossword puzzle has 1050 / 14 = <<",1, ,"At 7 days a week, it takes Bert 2 * 7 = <<2*7=14>>14 days of daily crossword puzzles to use up a pencil.
+Since Bert does one puzzle a day, each crossword puzzle has 1050 / 14 = << 1050 / 14 = 75 >>75 words.
+#### 75",
+claim,gsm8k-train-76,89,"The garden produced 237 potatoes - 60 = <<237-60=177>>177 cucumbers.
+The garden produced 177 cucumbers * 2 peppers/cucumber = <<177*2=354>>354 peppers.
+The garden produced 237 potatoes + 177 cucumbers + 354 peppers = <<",2,(,"The garden produced 237 potatoes - 60 = <<237-60=177>>177 cucumbers.
+The garden produced 177 cucumbers * 2 peppers/cucumber = <<177*2=354>>354 peppers.
+The garden produced 237 potatoes + 177 cucumbers + 354 peppers = <<(237+177+354)=768>>768 vegetables.
+#### 768",
+claim,gsm8k-train-3,46,"Maila read 12 x 2 = <<12*2=24>>24 pages today.
+So she was able to read a total of 12 + 24 = <<12+2",4,*,"Maila read 12 x 2 = <<12*2=24>>24 pages today.
+So she was able to read a total of 12 + 24 = <<12+2*12=36>>36 pages since yesterday.
+There are 120 - 36 = <<120-36=84>>84 pages left to be read.
+Since she wants to read half of the remaining pages tomorrow, then she should read 84/2 = <<84/2=42>>42 pages.
+#### 42",
+claim,gsm8k-train-499,35,"Santo = (1/2) 1956 = $978
+1956 + 978 = $<<1956",+, +,"Santo = (1/2) 1956 = $978
+1956 + 978 = $<<1956 + 978=2934>>2934
+Together Salvadore and Santo earned $<<2934=2934>>2934.
+#### 2934",
+claim,gsm8k-train-908,58,"He gets 12*5000=$<<12*5000=60000>>60000 for the first 12 hours
+For the next 14 hours, he gets 5000*.2=$<<",5,.,"He gets 12*5000=$<<12*5000=60000>>60000 for the first 12 hours
+For the next 14 hours, he gets 5000*.2=$<<.2*5000=1000>>1000 more per hour
+So he gets 5000+1000=$<<5000+1000=6000>>6000 per hour
+So he gets 6000*14=$<<6000*14=84000>>84000
+So in total, he makes 84000+60000=$<<84000+60000=144000>>144,000
+#### 144000",
+claim,gsm8k-train-401,16,Kimberley and Houston collected 10+12 = <<10,+, +,"Kimberley and Houston collected 10+12 = <<10 + 12 = 22>>22 pounds of firewood.
+You can find how much Ela collected by subtracting that amount from the total amount collected: 35-22 = <<35-22=13>>13 pounds.
+#### 13",
+claim,gsm8k-train-5,143,">8 more purple flowers than yellow flowers.
+So in Mark's garden, there are 10 + 8 = <<10+8=18>>18 purple flowers.
+Purple and yellow flowers sum up to 10 + 18 = <<10+18=28>>28 flowers.
+That means in Mark's garden there are 25/100 * 28 = <<25/100*28=7>>7 green flowers.
+So in total Mark has 28 + 7 = <<",2,7,"There are 80/100 * 10 = <<80/100*10=8>>8 more purple flowers than yellow flowers.
+So in Mark's garden, there are 10 + 8 = <<10+8=18>>18 purple flowers.
+Purple and yellow flowers sum up to 10 + 18 = <<10+18=28>>28 flowers.
+That means in Mark's garden there are 25/100 * 28 = <<25/100*28=7>>7 green flowers.
+So in total Mark has 28 + 7 = <<7+28=35>>35 plants in his garden.
+#### 35",
+claim,gsm8k-train-839,60,"They'll need to make an estimated 0.5 * 53 = <<0.5*53=26.5>>26.5 omelets for small children.
+They'll need to make an estimated 1 * 35 = <<1*35=",3, ,"They'll need to make an estimated 0.5 * 53 = <<0.5*53=26.5>>26.5 omelets for small children.
+They'll need to make an estimated 1 * 35 = <<1*35= 35>>35 omelets for older children.
+They'll need to make an estimated 2 * 75 = <<2*75=150>>150 omelets for the adults.
+And they'll need to make an estimated 1.5 * 37 = <<1.5*37=55.5>>55.5 omelets for the seniors.
+Along with the 25 extra omelets they'll make as a buffer, they will need enough eggs for 26.5 + 35 + 150 + 55.5 + 25 = <<26.5+35+150+55.5+25=292>>292 omelets.
+So they will need 2 * 292 = <<2*292=584>>584 eggs.
+#### 584",
+claim,gsm8k-train-488,24,Two fifths of $500 is (2/5)*$500 = $<<(2/5,)*,)*(,"Two fifths of $500 is (2/5)*$500 = $<<(2/5)*(500)=200>>200
+She needed $200 more than $500 which is $200+ $500 = $<<200+500=700>>700
+15% of $700 is (15/100)*$700 = $<<(15/100)*700=105>>105
+She was given a $105 discount so she has to pay $700-$105 = $595
+She would still need $595-$500= $<<595-500=95>>95
+#### 95",
+claim,gsm8k-train-611,113,"ming 1*2= <<1*2=2>>2 slices after the pizza was cut in half once.
+Each of these slices was cut in half again, yielding 2*2= <<2*2=4>>4 slices in total.
+Next, we divide the total amount of pepperoni slices by the number of pizza slices, as the pepperoni was spread evenly. We find there are 40/4= <<40",/, /,"First, we need to determine how many slices the pizza was cut into. To do this, we start by performing 1*2= <<1*2=2>>2 slices after the pizza was cut in half once.
+Each of these slices was cut in half again, yielding 2*2= <<2*2=4>>4 slices in total.
+Next, we divide the total amount of pepperoni slices by the number of pizza slices, as the pepperoni was spread evenly. We find there are 40/4= <<40 / 4=10>>10 slices of pepperoni per pizza slice.
+Since 1 slice of pepperoni fell off Jelly's slice, this means there are 10-1=<<10-1=9>>9 slices left on her slice.
+#### 9",
+claim,gsm8k-train-47,67,"The first 60 megabytes take 60/5=<<60/5=12>>12 seconds.
+There are 90-60=<<90-60=30>>30 remaining megabytes.
+The remaining 30 megabytes take 30/10=",<<,<<<,"The first 60 megabytes take 60/5=<<60/5=12>>12 seconds.
+There are 90-60=<<90-60=30>>30 remaining megabytes.
+The remaining 30 megabytes take 30/10=<<<30/10=3>>3 seconds.
+And 12+3=<<12+3=15>>15 seconds.
+#### 15",
+claim,gsm8k-train-776,14,Armand = (1/3) * 12 = <<,(,1,"Armand = (1/3) * 12 = <<1/3*12=4>>4 hours
+Ella = 2 * 12 = <<2*12=24>>24 hours
+Total hours = 12 + 4 + 24 = <<12+4+24=40>>40 hours
+They worked a total of 40 hours.
+#### 40",
+claim,gsm8k-train-1016,15,One-third of the fruit: 78/3 = <<78,/,/(,"One-third of the fruit: 78/3 = <<78/(3*1)=26>>26 kiwis
+The rest are strawberries: 78 - 26 = <<78-26=52>>52
+There are 52 strawberries in the crate.
+#### 52",
+claim,gsm8k-train-719,93,"On Monday, there were 50 visitors. On Tuesday, there were twice as many, so 2*50 = 100 visitors
+The total number of visitors after Tuesday will be 100+50 = <<100+50=150>>150 visitors.
+For the remaining 5 days, an average of 20 visitors attended, giving a total of 5*20 = <<",5,(,"On Monday, there were 50 visitors. On Tuesday, there were twice as many, so 2*50 = 100 visitors
+The total number of visitors after Tuesday will be 100+50 = <<100+50=150>>150 visitors.
+For the remaining 5 days, an average of 20 visitors attended, giving a total of 5*20 = <<(5*20)=100>>100 visitors.
+The total number of visitors who visited the library for the week was 100+150 = <<100+150=250>>250 visitors.
+#### 250",
+claim,gsm8k-train-440,17,"In 5 years, Cori will be 3 + 5 = <<3",+, +,"In 5 years, Cori will be 3 + 5 = <<3 + 5 = 8>>8 years old.
+In 5 years, Cori’s aunt will be 8 x 3 = <<8*3=24>>24 years old.
+Today, her aunt is 24 - 5 = <<24-5=19>>19 years old.
+#### 19",
+claim,gsm8k-train-50,19,He needs to save up $400 because 4 x 100 = <<,4, ,"He needs to save up $400 because 4 x 100 = << 4 * 100 = 400 >>400
+He has 8 months to earn this money because 12 - 4 = <<12-4=8>>8
+He needs to earn $50 a month because 400 / 8 = <<400/8=50>>50
+He needs to do 5 tasks a month because 50 / 10 = <<50/10=5>>5
+#### 5",
+claim,gsm8k-train-12,66,"Half of the number of Randy's mango trees is 60/2 = <<60/2=30>>30 trees.
+So Randy has 30 - 5 = <<30-5=25>>25 coconut trees.
+Therefore, Randy has 60 + 25 = <<",6,2,"Half of the number of Randy's mango trees is 60/2 = <<60/2=30>>30 trees.
+So Randy has 30 - 5 = <<30-5=25>>25 coconut trees.
+Therefore, Randy has 60 + 25 = <<25+60=85>>85 treeson his farm.
+#### 85",
+claim,gsm8k-train-127,72,"The second cat meowed twice as frequently as the three meows per minute from the first cat, for a total of 2*3=<<2*3=6>>6 meows per minute.
+The third cat meowed at one-third the frequency of the second cat, for a total of 6/3=<<6/3=2",>>, >>,"The second cat meowed twice as frequently as the three meows per minute from the first cat, for a total of 2*3=<<2*3=6>>6 meows per minute.
+The third cat meowed at one-third the frequency of the second cat, for a total of 6/3=<<6/3=2 >>2 meows per minute.
+Thus, combined, the three cats meow 3+6+2=<<3+6+2=11>>11 times per minute.
+In five minutes, the three cats meow 5*11=<<5*11=55>>55 times.
+#### 55",
+claim,gsm8k-train-137,96,"There are 3 families of 4 meaning there are 3*4 =<<3*4=12>>12 people in the vacation rental
+They all use 1 oversized beach towel a day so they use 1*12 = <<1*12=12>>12 towels a day
+They use 12 towels a day for 7 days so in one week they use 12*7 = <<12*7=",8,<<,"There are 3 families of 4 meaning there are 3*4 =<<3*4=12>>12 people in the vacation rental
+They all use 1 oversized beach towel a day so they use 1*12 = <<1*12=12>>12 towels a day
+They use 12 towels a day for 7 days so in one week they use 12*7 = <<12*7=<<12*7=84>>84 beach towels
+The washing machine can only hold 14 towels and they have 84 towels to wash which means there are 84/14 =<<84/14=6>>6 loads of laundry
+#### 6",
+claim,gsm8k-train-547,105,"The kitchen took 4 * .5 = <<4*.5=2>>2 hours longer than the bedrooms
+So the kitchen took 4 + 2 = <<4+2=6>>6 hours
+The bedrooms took 3 * 4 = <<3*4=12>>12 hours
+So the kitchen and bedrooms combined took 12 + 6 = <<12+6=18>>18 hours
+The living room took 18 * 2 = <<18",*, *,"The kitchen took 4 * .5 = <<4*.5=2>>2 hours longer than the bedrooms
+So the kitchen took 4 + 2 = <<4+2=6>>6 hours
+The bedrooms took 3 * 4 = <<3*4=12>>12 hours
+So the kitchen and bedrooms combined took 12 + 6 = <<12+6=18>>18 hours
+The living room took 18 * 2 = <<18 * 2=36>>36 hours
+So everything took a total of 18 + 36 = <<18+36=54>>54 hours
+#### 54",
+claim,gsm8k-train-910,40,"He drinks 128/2 = <<128/2=64>>64 ounces of coffee every 4 days
+That means he drinks 64/4 = <<",6,(,"He drinks 128/2 = <<128/2=64>>64 ounces of coffee every 4 days
+That means he drinks 64/4 = <<(64/4)=16>>16 ounces of coffee a day
+So he drinks 16/8 = <<16/8=2>>2 cups a day
+#### 2",
+claim,gsm8k-train-549,121,"The number of chairs that are disposed of after they're found to be damaged is 40/100*80 = <<40/100*80=32>>32.
+The number of chairs in good condition in Kenzo's company is 80-32 = <<80-32=48>>48
+The 48 chairs have 48*5 = <<48*5=240>>240 legs.
+The round tables also have 20*3 = <<20*3=",6,<<,"The number of chairs that are disposed of after they're found to be damaged is 40/100*80 = <<40/100*80=32>>32.
+The number of chairs in good condition in Kenzo's company is 80-32 = <<80-32=48>>48
+The 48 chairs have 48*5 = <<48*5=240>>240 legs.
+The round tables also have 20*3 = <<20*3=<<20*3=60>>60 legs.
+In total, the furniture in Kenzo's company has 60+240 = <<60+240=300>>300 legs.
+#### 300",
+claim,gsm8k-train-552,64,"The parking lot is 400*500=<<400*500=200000>>200,000
+There are 200,000*.8=<<200000*.8=1600",0,<<,"The parking lot is 400*500=<<400*500=200000>>200,000
+There are 200,000*.8=<<200000*.8=1600<<200000*.8=160000>>160,000 square feet of parking space
+That means he can park 16,0000/10=16000 cars
+#### 16000",
+claim,gsm8k-train-743,65,"First find the total number of people by adding the number of passengers and flight crew: 30 people + 5 people = <<30+5=35>>35 people
+Then find the total number of bags by doubling the total number of people: 35 people * 2 bags/person = <<",3,2,"First find the total number of people by adding the number of passengers and flight crew: 30 people + 5 people = <<30+5=35>>35 people
+Then find the total number of bags by doubling the total number of people: 35 people * 2 bags/person = <<2*35=70>>70 bags
+Then find the fuel increase caused by the people by multiplying their number by the fuel increase per person: 35 people * 3 gallons/mile/person = <<35*3=105>>105 gallons/mile
+Then multiply the number of bags by the fuel increase per bag to find the total fuel increase they cause: 70 bags * 2 gallons/mile/bag = <<70*2=140>>140 gallons/mile
+Now add the fuel increases to the base fuel consumption to find the total fuel needed per mile: 140 gallons/mile + 105 gallons/mile + 20 gallons/mile = <<140+105+20=265>>265 gallons/mile
+Now multiply the fuel consumption per mile by the number of miles flown to find the total amount of fuel needed: 265 gallons/mile * 400 miles = <<265*400=106000>>106,000 gallons of fuel
+#### 106000",
+claim,gsm8k-train-710,13,They ate a total of 4 x 2 = <<4,*, *,"They ate a total of 4 x 2 = <<4 * 2 = 8>>8 pieces of candy after the event.
+So, Travis and his brother have 68 - 8 = <<68-8=60>>60 pieces of candy left.
+#### 60",
+claim,gsm8k-train-386,199,"iginal price.
+Therefore the two pairs of shoes cost $100 x 0.60 = $<<100*0.60=60>>60.
+The dress is discounted by 20 percent so she only pays 100 - 20 = <<100-20=80>>80 percent of the original price.
+Therefore the dress costs $100 x 0.80 = $<<100*0.80=80>>80.
+In total Daniela spends $60 + $80 = $<<60",+, +,"Two pairs of shoes at $50 a pair costs $50 x 2 = $<<50*2=100>>100.
+The shoes are discounted by 40 percent so she only pays 100 - 40 = <<100-40=60>>60 percent of the original price.
+Therefore the two pairs of shoes cost $100 x 0.60 = $<<100*0.60=60>>60.
+The dress is discounted by 20 percent so she only pays 100 - 20 = <<100-20=80>>80 percent of the original price.
+Therefore the dress costs $100 x 0.80 = $<<100*0.80=80>>80.
+In total Daniela spends $60 + $80 = $<<60 + 80=140>>140 for two pairs of shoes and a dress.
+#### 140",
+claim,gsm8k-train-774,29,"If the plumber chooses the first job, he would earn 3*50 + 3*30 = $<<3*50",+,+(,"If the plumber chooses the first job, he would earn 3*50 + 3*30 = $<<3*50+(3*30)=240>>240.
+If he chooses the second, he'd earn 2*50 + 5*30 = $<<2*50+5*30=250>>250.
+If he chooses the third, he'd earn 50 + 2*40 + 3*30 = $<<50+2*40+3*30=220>>220.
+Therefore, the most money he can earn from one of these jobs is $<<250=250>>250.
+#### 250",
+claim,gsm8k-train-939,21,"Half of the students are playing basketball, which means 20 / 2 = <<20/",2, ,"Half of the students are playing basketball, which means 20 / 2 = <<20/ 2 = 10>>10 students play basketball.
+Two-fifths plays volleyball, which leaves us with 20 * 2/5 = <<20*2/5=8>>8 students.
+One-tenth play both games, which means 20 * 1/10 = <<20*1/10=2>>2 students.
+There are 10 + 8 = <<10+8=18>>18 students who play basketball or volleyball.
+Among these 18 students, 2 of them are playing both games, so that means 18 - 2 = <<18-2=16>>16 students play only one of the two games.
+So finally, 20 - 16 = <<20-16=4>>4 students do not play either game.
+#### 4",
+claim,gsm8k-train-33,35,"To make the pizza, Kimber half as many teaspoons of salt as the number of cups of flour, meaning she needs 1/2*16 = <<16*",1,0,"To make the pizza, Kimber half as many teaspoons of salt as the number of cups of flour, meaning she needs 1/2*16 = <<16*0.5=8>>8 teaspoons of salt.
+The total number of cups of flour and teaspoons of salt she needs is 8+16 = <<8+16=24>>24
+She also needs 10 cups of water, which means the total number of cups of water and flour and teaspoons of salt she needs is 24+10 = <<24+10=34>>34
+#### 34",
+claim,gsm8k-train-335,118,"A small knife is twice the amount of the utensils that costs $10.00 so the knife costs 2*10 = $<<2*10=20.00>>20.00
+All total, each little kit will costs $14.00 for mitts, $16.00 for an apron, $10.00 for utensils and $20.00 for a knife for a total of 14+16+10+20 = $<<14+",1, ,"A small knife is twice the amount of the utensils that costs $10.00 so the knife costs 2*10 = $<<2*10=20.00>>20.00
+All total, each little kit will costs $14.00 for mitts, $16.00 for an apron, $10.00 for utensils and $20.00 for a knife for a total of 14+16+10+20 = $<<14+ 16+ 10+ 20=60.00>>60.00
+Each kit costs $60.00 and they are currently 25% off so that's a savings of 60*.25 = $<<60*.25=15.00>>15.00
+The kits are $60.00 and they are $15.00 off so they now cost 60-15 = $<<60-15=45.00>>45.00
+She needs to buy 3 kits and each kit costs $45.00 so that's 3*45 = $<<3*45=135.00>>135.00
+#### 135",
+claim,gsm8k-train-92,17,Saly saves 1/2 * $6/day = $<<1/2,*,*(,"Saly saves 1/2 * $6/day = $<<1/2*(6)=3>>3/day.
+Since each year have 365 days, the total amount of money Sally will save in a year is $3/day * 365 days/year = $<<3*365=1095>>1095/year
+Bob saves 1/2 * $4/day = $<<1/2*4=2>>2/day.
+The total amount of money Bob will have saved in a year is $2/day * 365 days/year = $<<2*365=730>>730/year
+In total, Sally and Bob would have saved $730 + $1095 = $<<730+1095=1825>>1825
+#### 1825",
+claim,gsm8k-train-1009,54,"60% of female alligators are adults because 100 - 40 = <<100-40=60>>60
+There are 25 female alligators because 15 / .6 = <<15/.6",=, =,"60% of female alligators are adults because 100 - 40 = <<100-40=60>>60
+There are 25 female alligators because 15 / .6 = <<15/.6 = 25>>25
+There are 50 alligators in total because 25 / .5 = <<25/.5=50>>50
+There are 25 male alligators because 50 / 2 = <<50/2=25>>25
+#### 25",
+claim,gsm8k-train-856,65,"Randy spends 2*4=<<2*4=8>>8 dollars every month.
+Randy spends 8*12=<<8*12=96>>96 dollars in a year.
+Randy had 96+104=<<96+104=2",0,<<,"Randy spends 2*4=<<2*4=8>>8 dollars every month.
+Randy spends 8*12=<<8*12=96>>96 dollars in a year.
+Randy had 96+104=<<96+104=2<<96+104=200>>200 dollars in his piggy bank at first.
+#### 200",
+claim,gsm8k-train-143,54,"There are 60 goldfish because 15 / .25 = <<15/.25=60>>60
+75% of the fish are below the surface because 100 - 25 = <<100-",2, ,"There are 60 goldfish because 15 / .25 = <<15/.25=60>>60
+75% of the fish are below the surface because 100 - 25 = <<100- 25=75>>75
+There are 45 goldfish below the surface because 60 x .75 = <<60*.75=45>>45
+#### 45",
+claim,gsm8k-train-911,74,"If on the return journey to its home, the alligator took 2 more hours than it took to travel to the Nile Delta, Paul took 4+2=<<4+2=6>>6 hours to travel back to its home.
+The total time Paul took to travel from its home to the Nile Delta and back is 6+4=<<6",+, +,"If on the return journey to its home, the alligator took 2 more hours than it took to travel to the Nile Delta, Paul took 4+2=<<4+2=6>>6 hours to travel back to its home.
+The total time Paul took to travel from its home to the Nile Delta and back is 6+4=<<6 + 4=10>>10
+On his return journey, Paul traveled with six other alligators, and since each alligator traveled for six hours up the Nile to their home, they took a total of 6*6=<<6*6=36>>36 hours to do so.
+Together with Paul, all the alligators took 10+36=<<10+36=46>>46 hours traveling between Nile Delta and up the Nile.
+#### 46",
+claim,gsm8k-train-598,85,"There are 7 days in a week and 2 cups are recommended per day, bringing the total to 7 days * 2 cups/day =<<7*2=14>>14 cups for the week.
+Out of the 14 total cups needed for the week, Sarah has already eaten 8, for a total of 14 cups - 8 cups = <<14-8=6",>>, >>,"There are 7 days in a week and 2 cups are recommended per day, bringing the total to 7 days * 2 cups/day =<<7*2=14>>14 cups for the week.
+Out of the 14 total cups needed for the week, Sarah has already eaten 8, for a total of 14 cups - 8 cups = <<14-8=6 >>6 cups left to consume for the week.
+Sunday through Thursday equals 5 days that have passed. If there are 7 days in the week then Sarah has 7 days - 5 days = <<7-5=2>>2 days left of the week.
+If she needs to eat 6 more cups in the next 2 days then she will have to eat 6 cups / 2 days = <<6/2=3>>3 cups per day over the next two days.
+#### 3",
+claim,gsm8k-train-401,65,"Kimberley and Houston collected 10+12 = <<10+12=22>>22 pounds of firewood.
+You can find how much Ela collected by subtracting that amount from the total amount collected: 35-22 = <<35-22=13",>>, >>,"Kimberley and Houston collected 10+12 = <<10+12=22>>22 pounds of firewood.
+You can find how much Ela collected by subtracting that amount from the total amount collected: 35-22 = <<35-22=13 >>13 pounds.
+#### 13",
+claim,gsm8k-train-23,16,She bought 5 shorts at $7 each so 5*7=$<<,5,7,"She bought 5 shorts at $7 each so 5*7=$<<7*5=35>>35
+She bought 2 pair of shoes at $10 each so 2*10=$<<2*10=20>>20
+The shorts and shoes cost her 35+20 = $<<35+20=55>>55
+We know she spent 75 total and the shorts and shoes cost $55 which left a difference of 75-55 = $<<75-55=20>>20
+She bought 4 tops for a total of $20 so 20/4 = $5
+#### 5",
+claim,gsm8k-train-462,71,"Roberto skips 70 times per minute because 4,200 / 60 = <<4200/60=70>>70.
+Together they skip 150 times a minute.
+They will skip 2,250 times because 150 x 15 = <<150",*, x,"Roberto skips 70 times per minute because 4,200 / 60 = <<4200/60=70>>70.
+Together they skip 150 times a minute.
+They will skip 2,250 times because 150 x 15 = <<150 x 15=2250>>2,250
+#### 2,250",
+claim,gsm8k-train-779,20,The clay pot costs $20 + $9 = $<<20+9=29,>>,.,"The clay pot costs $20 + $9 = $<<20+9=29.00>>29.
+The bag of soil costs $9 - $2 = $<<9-2=7>>7.
+The cost to plant the flowers is $9 + $29 + $7 = $<<9+29+7=45>>45.
+#### 45",
+claim,gsm8k-train-299,33,Basil gets 1/2 in the morning and 1/2 at bedtime so she gets 1/2+1/2 = <<1/2,+,+.,"Basil gets 1/2 in the morning and 1/2 at bedtime so she gets 1/2+1/2 = <<1/2+.5=1>>1 whole cookie
+Basil also gets 2 whole cookies during the day so all total she gets 2+1 =<<2+1=3>>3 whole cookies
+She needs cookies for 30 days and eats 3 a day so she needs 30*3 = <<30*3=90>>90 cookies
+Her cookies come 45 per box and she needs 90 cookies so she needs 90/45 = <<90/45=2>>2 boxes of cookies
+#### 2",
+claim,gsm8k-train-7,32,"To the initial 2 pounds of jelly beans, he added enough brownies to cause the weight to triple, bringing the weight to 2*3=<<",2,3,"To the initial 2 pounds of jelly beans, he added enough brownies to cause the weight to triple, bringing the weight to 2*3=<<3*2=6>>6 pounds.
+Next, he added another 2 pounds of jelly beans, bringing the weight to 6+2=<<6+2=8>>8 pounds.
+And finally, he added enough gummy worms to double the weight once again, to a final weight of 8*2=<<8*2=16>>16 pounds.
+#### 16",
+claim,gsm8k-train-229,65,"She gets 1000/25=<<1000/25=40>>40 sections
+She gives away 40/4=<<40/4=10>>10 sections
+So she keeps 40-10=<<40-10",=, =,"She gets 1000/25=<<1000/25=40>>40 sections
+She gives away 40/4=<<40/4=10>>10 sections
+So she keeps 40-10=<<40-10 = 30>>30 sections
+She keeps 30/2=<<30/2=15>>15 sections on hand
+#### 15",
+claim,gsm8k-train-1064,50,"He spends $10/snake * 4 snakes = $<<10*4=40>>40 to feed his snakes every month
+He spends $5/iguana * 2 iguanas = $<<5*2",=, =,"He spends $10/snake * 4 snakes = $<<10*4=40>>40 to feed his snakes every month
+He spends $5/iguana * 2 iguanas = $<<5*2 = 10>>10 to feed his iguanas every month
+He spends $15/gecko * 3 geckos = $<<15*3=45>>45 to feed his geckos every month
+So overall he spends $40 + $10 + $45 = $<<40+10+45=95>>95 to feed all his pets every month
+Therefore every year pet food costs him $95/month * 12 months = $<<95*12=1140>>1140
+#### 1140",
+claim,gsm8k-train-1084,71,"First, we figure out the price per meal by adding the steak and the drink together, finding a cost of 20+5=<<20+5=25>>25 per meal.
+Then we multiply this by 2, as there are two people eating, meaning a total cost of 25*2=<<25",*,+,"First, we figure out the price per meal by adding the steak and the drink together, finding a cost of 20+5=<<20+5=25>>25 per meal.
+Then we multiply this by 2, as there are two people eating, meaning a total cost of 25*2=<<25+25=50>>50 for both meals.
+Then we find the total tip amount for a 20% tip, by multiplying 50*.2= 10.
+Then we find out what 80% of this tip amount is by multiplying the desired tip of 10 by .8, finding 10*.8= <<10*.8=8>>8 dollars that Billy should contribute.
+#### 8",
+claim,gsm8k-train-1030,25,First find the total number of ounces in the water cooler: 3 gallons * 128 ounces/gallon = <<,3,1,"First find the total number of ounces in the water cooler: 3 gallons * 128 ounces/gallon = <<128*3=384>>384 ounces
+Then find the total number of dixie cups Bill pours: 5 rows * 10 chairs/row = <<5*10=50>>50 chairs
+Then find the total number ounces Bill pours: 50 attendees * 6 ounces/attendee = <<50*6=300>>300 ounces
+Then subtract the amount of water Bill pours from the cooler from the initial amount to find the final amount: 384 ounces - 300 ounces = <<384-300=84>>84 ounces
+#### 84",
+decision,gsm8k-train-690,44,"Jose has half as many bottles of domestic wine as imported wine, or 2400/2=<<2400/2=1200>>1200 bottles of domestic wine.
+",In,Jose,"Jose has half as many bottles of domestic wine as imported wine, or 2400/2=<<2400/2=1200>>1200 bottles of domestic wine.
+Jose has a total of 2400 + 1200 = <<2400+1200=3600>>3600 bottles of wine.
+If Jose has a party and the guests drink one-third of his wine, then they will drink 3600/3=<<3600/3=1200>>1200 bottles of wine.
+After the party, Jose will have 3600 - 1200 = <<3600-1200=2400>>2400 bottles of wine remaining in his cellar.
+#### 2400",
+decision,gsm8k-train-776,82,"Armand = (1/3) * 12 = <<(1/3)*12=4>>4 hours
+Ella = 2 * 12 = <<2*12=24>>24 hours
+Total hours = 12 + 4 + 24 = <<12+4+24=40>>40 hours
+They worked", a, together,"Armand = (1/3) * 12 = <<(1/3)*12=4>>4 hours
+Ella = 2 * 12 = <<2*12=24>>24 hours
+Total hours = 12 + 4 + 24 = <<12+4+24=40>>40 hours
+They worked together for 40 hours.
+#### 40",
+decision,gsm8k-train-301,0,,1,To,"To find the number of students who do not read novels, we need to calculate the number of students who read three or more, two, and one novel, and then subtract the sum of these from the total number of students.
+Number of students who read three or more novels = 1/6 * 240 = 40 students
+Percentage of students who read two novels = 35/100 = 0.35
+Number of students who read two novels = 0.35 * 240 = 84 students
+Fraction of students who read one novel = 5/12
+Number of students who read one novel = (5/12) * 240 = 100 students
+Total number of students who read novels = 40 + 84 + 100 = 224 students
+Number of students who do not read novels = 240 - 224 = 16 students
+#### 16",
+decision,gsm8k-train-580,113,"of the igloo, there are 10 rows / 2 = <<10/2=5>>5 rows of bricks of snow.
+So in the bottom half of the igloo, there are 5 rows * 12 bricks of snow in each row = <<5*12=60>>60 bricks of snow.
+In the top half of the igloo, there are 5 rows * 8 bricks of snow in each row = <<5*8=40>>40 bricks of snow.
+",There,So,"In the bottom half of the igloo, there are 10 rows / 2 = <<10/2=5>>5 rows of bricks of snow.
+So in the bottom half of the igloo, there are 5 rows * 12 bricks of snow in each row = <<5*12=60>>60 bricks of snow.
+In the top half of the igloo, there are 5 rows * 8 bricks of snow in each row = <<5*8=40>>40 bricks of snow.
+So in total, Libby used 60 bricks of snow in the bottom half of the igloo + 40 bricks of snow in the top half of the igloo = 60 + 40 = <<60+40=100>>100 bricks of snow.
+#### 100",
+decision,gsm8k-train-540,98,"The 6 triangles have 3 sides each, for a total of 6 * 3 = <<6*3=18>>18 sides.
+The 4 squares have 4 sides each, for a total of 4 * 4 = <<4*4=16>>16 sides.
+The 2 hexagons have 6 sides each, for a total of 2 * 6 = <<2*6=12>>12 sides.
+",The,In,"The 6 triangles have 3 sides each, for a total of 6 * 3 = <<6*3=18>>18 sides.
+The 4 squares have 4 sides each, for a total of 4 * 4 = <<4*4=16>>16 sides.
+The 2 hexagons have 6 sides each, for a total of 2 * 6 = <<2*6=12>>12 sides.
+In total, there are 18 + 16 + 12 = <<18+16+12=46>>46 sides on the cookie cutters.
+#### 46",
+decision,gsm8k-train-590,57,"Since there are four types of chocolate bars and each type has 25 bars, the total number of chocolate bars is 25*4=<<25*4=100>>100.
+Since there is a total of 100 chocolate bars and", four, ,"Since there are four types of chocolate bars and each type has 25 bars, the total number of chocolate bars is 25*4=<<25*4=100>>100.
+Since there is a total of 100 chocolate bars and 25 bars of each type, each type of chocolate bar constitutes 25/100=0.25 of the total chocolate bars.
+Therefore, the percentage of each type of chocolate bar is 0.25*100%=<<0.25*100=25>>25%.
+#### 25",
+decision,gsm8k-train-656,8,"If Zig wrote 60 books,", four, then,"If Zig wrote 60 books, then Flo wrote 60 / 4 = 15 books.
+Altogether, Zig and Flo wrote 60 + 15 = 75 books.
+#### 75",
+decision,gsm8k-train-640,41,"After this week, Michelangelo will have 28-12=<<28-12=16>>16 more ceilings to paint.
+Next week, Michelangelo will paint 1",2, /,"After this week, Michelangelo will have 28-12=<<28-12=16>>16 more ceilings to paint.
+Next week, Michelangelo will paint 1 / 4 * 12 ceilings = <<1 / 4 * 12=3>>3 more ceilings.
+So, after next week, Michelangelo will have 16-3=<<16-3=13>>13 ceilings to paint.
+#### 13",
+decision,gsm8k-train-876,26,"In the first verse, 30 / 2 = <<30/2=15>>15 singers sang.
+",In,After,"In the first verse, 30 / 2 = <<30/2=15>>15 singers sang.
+After the first verse, there were 30 - 15 = <<30-15=15>>15 singers remaining.
+In the second verse, 15 / 3 = <<15/3=5>>5 singers joined in.
+After the second verse, there were 15 - 5 = <<15-5=10>>10 singers remaining.
+In the final third verse, all 10 remaining singers joined in.
+Therefore, 10 people joined in the final third verse that the whole choir sang together.
+#### 10",
+decision,gsm8k-train-1036,26,"Austin has 60/3=<<60/3=20>>20 markers
+Alia has 2",0,*,"Austin has 60/3=<<60/3=20>>20 markers
+Alia has 2*20=<<2*20=40>>40 markers
+#### 40",
+decision,gsm8k-train-662,45,"Flora has 50*2= <<50*2=100>>100 books
+Gary has 50/2= <<50/2=25>>25 books
+",Together,In,"Flora has 50*2= <<50*2=100>>100 books
+Gary has 50/2= <<50/2=25>>25 books
+In total, the three of them own 50+100+25= <<50+100+25=175>>175 books.
+#### 175",
+decision,gsm8k-train-196,27,"Herbert is 24 - 10 = <<24-10=14>>14 years old now.
+",Thus,Next,"Herbert is 24 - 10 = <<24-10=14>>14 years old now.
+Next year, Herbert will be 14 + 1 = <<14+1=15>>15 years old.
+#### 15",
+decision,gsm8k-train-979,103,"Grant threw the ball 25% farther than Parker. If Parker threw the ball 16 yards, then Grant threw it 16*.25 = <<16*.25=4>>4 farther
+In total, Grant threw the ball 16+4 = <<16+4=20>>20 yards
+Kyle threw 2 times farther than Grant so Kyle threw the ball 2*20 = <<2*20=40>>40 yards
+",If,Kyle,"Grant threw the ball 25% farther than Parker. If Parker threw the ball 16 yards, then Grant threw it 16*.25 = <<16*.25=4>>4 farther
+In total, Grant threw the ball 16+4 = <<16+4=20>>20 yards
+Kyle threw 2 times farther than Grant so Kyle threw the ball 2*20 = <<2*20=40>>40 yards
+Kyle threw the ball 40-16 = <<40-16=24>>24 yards farther than Parker
+#### 24",
+decision,gsm8k-train-139,99,"Janice walks up 3 flights of stairs 5 times per day, for a total of 3*5 = <<3*5=15>>15 flights of stairs
+Janice walks down 3 flights of stairs 3 times per day, for a total of 3*3 = <<3*3=9>>9 flights of stairs
+In total, she walks 15+9=<<15+9=24>>24 flights of stairs", in, per,"Janice walks up 3 flights of stairs 5 times per day, for a total of 3*5 = <<3*5=15>>15 flights of stairs
+Janice walks down 3 flights of stairs 3 times per day, for a total of 3*3 = <<3*3=9>>9 flights of stairs
+In total, she walks 15+9=<<15+9=24>>24 flights of stairs per day.
+#### 24",
+decision,gsm8k-train-841,35,"The total ratio for the number of cats and dogs that Heloise has is 10+17 = <<10+17=27>>27
+",From,H,"The total ratio for the number of cats and dogs that Heloise has is 10+17 = <<10+17=27>>27
+Heloise has dogs and cats in the ratio of 10:17, so she has 10 out of 27 total pets being dogs.
+The ratio of dogs to total pets is 10/27
+Heloise has 189 total pets, so she has (10/27)*189 = <<(10/27)*189=70>>70 dogs.
+If she gives 10 dogs to her friend Janet, then she remains with 70-10 = <<70-10=60>>60 dogs.
+#### 60",
+decision,gsm8k-train-764,15,"A dietitian ate three-fourths of her lunch during her lunch break,", containing, which,"A dietitian ate three-fourths of her lunch during her lunch break, which means she ate 3 / 4 x 40 = 30 calories.
+The recommended calorie intake by the FDA is 25 calories.
+Therefore, the dietitian ate 30 - 25 = 5 more calories than the recommended amount.
+#### 5",
+decision,gsm8k-train-794,108,"Three times the number of red candies is 40*3=<<40*3=120>>120.
+So, for yellow candies, there were 20 less than 120 candies, or a total of
+120-20=<<120-20=100>>100 yellow candies.
+Half as many blue candies as yellow candies is 100/2=<<100/2=50>>50 blue candies.
+",If,So,"Three times the number of red candies is 40*3=<<40*3=120>>120.
+So, for yellow candies, there were 20 less than 120 candies, or a total of
+120-20=<<120-20=100>>100 yellow candies.
+Half as many blue candies as yellow candies is 100/2=<<100/2=50>>50 blue candies.
+So, there were a total of 40+100+50=<<40+100+50=190>>190 candies.
+If Carlos eats all of the yellow candies, the number of candies that remained is 190-100=<<190-100=90>>90.
+#### 90",
+decision,gsm8k-train-377,24,"The long CD is 1.5*2=<<1.5*2=3>>3 hours
+The", two, combined,"The long CD is 1.5*2=<<1.5*2=3>>3 hours
+The combined length of the first two CDs is 1.5+1.5=<<1.5+1.5=3>>3 hours
+So the combined length of CDs is 3+3=<<3+3=6>>6 hours
+#### 6",
+decision,gsm8k-train-503,35,"The total number of pages is 180 + 100 = <<180+100=280>>280 pages
+The", number, books,"The total number of pages is 180 + 100 = <<180+100=280>>280 pages
+The books are due in two weeks, so Yasna has two weeks * 7 days = <<2*7=14>>14 days to read the books.
+Yasna needs to read a total of 280 pages for two weeks, so she will need to read 280 / 14 = <<280/14=20>>20 pages every day.
+#### 20",
+decision,gsm8k-train-931,25,"Malcom has 20 cards + 8 cards = <<20+8=28>>28 cards.
+",Mal,He,"Malcom has 20 cards + 8 cards = <<20+8=28>>28 cards.
+He gives half of his cards to Mark, so 28 cards / 2 = <<28/2=14>>14 cards left.
+#### 14",
+decision,gsm8k-train-1019,85,"Before throwing the cookies, Alice and Bob baked 74 + 7 = <<74+7=81>>81 cookies.
+After throwing the cookies, they baked 5 + 36 = <<5+36=41>>41 cookies.
+In total, they baked 81 + 41 = <<81+41=122>>122 cookies
+",They,If,"Before throwing the cookies, Alice and Bob baked 74 + 7 = <<74+7=81>>81 cookies.
+After throwing the cookies, they baked 5 + 36 = <<5+36=41>>41 cookies.
+In total, they baked 81 + 41 = <<81+41=122>>122 cookies
+If they started with 93 edible cookies, then they threw 122 - 93 = <<122-93=29>>29 cookies onto the floor.
+#### 29",
+decision,gsm8k-train-171,20,He got 20*2=<<20*2=40>>40 seeds,"
+", from,"He got 20*2=<<20*2=40>>40 seeds from his trees.
+60% of 40 is 40*0.6=<<40*0.6=24>>24 seeds.
+Therefore, he planted a total of 24 trees from his trees.
+#### 24",
+decision,gsm8k-train-54,56,"Leah spent 28 / 7 = $<<28/7=4>>4 on a milkshake.
+She had 28 - 4 = $<<28-4=24>>24 left.
+She put half in her savings account and", half, the,"Leah spent 28 / 7 = $<<28/7=4>>4 on a milkshake.
+She had 28 - 4 = $<<28-4=24>>24 left.
+She put half in her savings account and the other half in her wallet, so 24 / 2 = $<<24/2=12>>12 is in her wallet.
+Her dog shredded all the money in her wallet except for $1, so she lost 12 - 1 = $<<12-1=11>>11 dollars.
+#### 11",
+decision,gsm8k-train-79,28,"His partner has been teaching for 40-10=<<40-10=30>>30 years
+So", together, their,"His partner has been teaching for 40-10=<<40-10=30>>30 years
+So their combined experience is 40+30=<<40+30=70>>70 years
+#### 70",
+decision,gsm8k-train-988,61,"The length of the box is 3 x the height of 12 inches = <<3*12=36>>36 inches.
+The width of the box is 36 inches / 4 = <<36/4=9>>9 inches.
+The volume of the box is", the, its,"The length of the box is 3 x the height of 12 inches = <<3*12=36>>36 inches.
+The width of the box is 36 inches / 4 = <<36/4=9>>9 inches.
+The volume of the box is its length x its width x its height = 36 inches x 9 inches x 12 inches = <<36*9*12=3888>>3888 cubic inches.
+#### 3888",
+decision,gsm8k-train-1089,29,"Half of twelve cans of sprinkles is 12/2=<<12/2=6>>6 cans.
+Three less than half", as, of,"Half of twelve cans of sprinkles is 12/2=<<12/2=6>>6 cans.
+Three less than half of twelve cans is 6-3=<<6-3=3>>3 cans.
+Therefore, Coleen had 3 cans of sprinkles remaining.
+#### 3",
+decision,gsm8k-train-791,0,,On,Of,"Of the 90 people on William's bus, 3/5 were Dutch, which equals 3/5 * 90 = 54 Dutch people.
+Out of the 54 Dutch people, 1/2 were also American, so 1/2 * 54 = 27 Dutch Americans.
+Of the 27 Dutch Americans, 1/3 got window seats, which equals 1/3 * 27 = 9 Dutch Americans.
+Therefore, the number of Dutch Americans who sat at the windows is 9.
+#### 9",
+decision,gsm8k-train-408,118,"m of the weights of the three adults is 140 x 3 = <<140*3=420>>420 pounds.
+The sum of the weight of the two children is 64 x 2 = <<64*2=128>>128 pounds.
+So the total weight of the 5 people who are in the elevator is 420 + 128 = <<420+128=548>>548 pounds.
+This would mean that the next person's weight", must, can,"The sum of the weights of the three adults is 140 x 3 = <<140*3=420>>420 pounds.
+The sum of the weight of the two children is 64 x 2 = <<64*2=128>>128 pounds.
+So the total weight of the 5 people who are in the elevator is 420 + 128 = <<420+128=548>>548 pounds.
+This would mean that the next person's weight can't exceed the maximum weight of 600 pounds - 548 pounds = <<600-548=52>>52 pounds.
+So the maximum weight of the next person to enter the elevator is 52 pounds.
+#### 52",
+decision,gsm8k-train-410,61,"He can jump 3*60=<<3*60=180>>180 times per minute
+So he can jump 180*60=<<180*60=10800>>10,800 per hour
+",So,Therefore,"He can jump 3*60=<<3*60=180>>180 times per minute
+So he can jump 180*60=<<180*60=10800>>10,800 per hour
+Therefore, he would take 54000/10800=<<54000/10800=5>>5 hours to jump rope until he reaches the record
+#### 5",
+decision,gsm8k-train-76,8,The garden produced 237 potatoes, -, and,"The garden produced 237 potatoes and 60 fewer cucumbers, so 237 - 60 = 177 cucumbers.
+The garden also produced twice as many peppers as cucumbers, so 177 x 2 = 354 peppers.
+The garden produced a total of 237 + 177 + 354 = 768 vegetables.
+#### 768",
+decision,gsm8k-train-85,35,"Jolyn is 2 + 5 = <<2+5=7>>7 months older than Aivo.
+Since Leon is 2 months older than Aivo,", then, the,"Jolyn is 2 + 5 = <<2+5=7>>7 months older than Aivo.
+Since Leon is 2 months older than Aivo, the difference in their age is 7 - 2 = <<7-2=5>>5 months.
+So Jolyn is 5 months older than Leon.
+#### 5",
+decision,gsm8k-train-342,28,"Mark played for a total of 20 + 35 = <<20+35=55>>55 minutes.
+",So,The,"Mark played for a total of 20 + 35 = <<20+35=55>>55 minutes.
+The entire game was 90 minutes in length.
+So, Mark spent 90 - 55 = <<90-55=35>>35 minutes on the sideline.
+#### 35",
+decision,gsm8k-train-1088,62,"Three times the number of cows We the People has is 3*17=<<3*17=51>>51 cows.
+Happy Good Healthy Family has two more than three times the number of cows We the People has, a total of 51+2=53 cows.
+",If,Al,"Three times the number of cows We the People has is 3*17=<<3*17=51>>51 cows.
+Happy Good Healthy Family has two more than three times the number of cows We the People has, a total of 51+2=53 cows.
+Altogether, their cows will be 17+53=<<17+53=70>>70 in the ranch.
+#### 70",
+decision,gsm8k-train-896,82,"Kim got 6 points/round x 2 round = <<6*2=12>>12 points in the easy round.
+She got 2 points/round x 3 rounds = <<2*3=6>>6 points in the average round.
+She got 4 points/round x 5 rounds = <<4*5=20>>20 points in the difficult round.
+",So,In,"Kim got 6 points/round x 2 round = <<6*2=12>>12 points in the easy round.
+She got 2 points/round x 3 rounds = <<2*3=6>>6 points in the average round.
+She got 4 points/round x 5 rounds = <<4*5=20>>20 points in the difficult round.
+In total, Kim got 12 + 6 + 20 = <<12+6+20=38>>38 points in the contest.
+#### 38",
+decision,gsm8k-train-125,41,"After 10 years, growing at the rate of 3 inches every year, Haley will have grown by 3*10 = <<3*10=30>>30 inches.
+",If,So,"After 10 years, growing at the rate of 3 inches every year, Haley will have grown by 3*10 = <<3*10=30>>30 inches.
+So, her total growth after 10 years will be 30 inches.
+Adding this to her current height, her height after 10 years will be 20 + 30 = <<20+30=50>>50 inches.
+#### 50",
+decision,gsm8k-train-923,0,,The,To,"To find the cost of the quilt, we have to multiply the area (length x width) of the quilt by the cost per square foot. 
+Length = 7 feet 
+Width = 8 feet 
+Area = 7 feet * 8 feet = 56 square feet 
+Cost per square foot = $40 
+Cost of the quilt = Area * Cost per square foot = 56 square feet * $40 = $<<56*40=2240>>2240 
+The quilt will cost $2240. 
+#### 2240",
+decision,gsm8k-train-961,47,"Johnny TV makes 25/100*220=<<25/100*220=55>>55 more movies than L&J Productions each year.
+The total number of movies", that, Johnny,"Johnny TV makes 25/100*220=<<25/100*220=55>>55 more movies than L&J Productions each year.
+The total number of movies Johnny TV makes is 220+55=<<220+55=275>>275
+Combined, L&J Productions and Johnny TV makes 275+220=<<275+220=495>>495 movies in a year.
+In five years, the two production companies make 495*5=<<495*5=2475>>2,475 movies.
+#### 2475",
+decision,gsm8k-train-762,58,"Lenny has 20 x 5 = <<20*5=100>>100 pens.
+She gave her close friends 100 x 40% = <<100*40*.01=40>>40 pens.
+",So,H,"Lenny has 20 x 5 = <<20*5=100>>100 pens.
+She gave her close friends 100 x 40% = <<100*40*.01=40>>40 pens.
+Hence, she was left with 100 - 40 = <<100-40=60>>60 pens.
+Then, she gave her classmates 60 x 1/4 = <<60*1/4=15>>15 pens.
+Therefore, she was left with 60 - 15 = <<60-15=45>>45 pens.
+#### 45",
+decision,gsm8k-train-377,51,"The long CD is 1.5*2=<<1.5*2=3>>3 hours
+The two shorter CDs have a combined length of 1.5*2=<<1.5*2=3>>3 hours
+",So,All,"The long CD is 1.5*2=<<1.5*2=3>>3 hours
+The two shorter CDs have a combined length of 1.5*2=<<1.5*2=3>>3 hours
+All in all, the combined length of the 3 CDs is 3 + 3 = <<3+3=6>>6 hours
+#### 6",
+decision,gsm8k-train-853,59,"If Eugene used all but 16 of the 52 cards, then he used 52-16=<<52-16=36>>36 cards.
+If for every card he used 75 toothpicks, then a box of toothpicks", would, contains,"If Eugene used all but 16 of the 52 cards, then he used 52-16=<<52-16=36>>36 cards.
+If for every card he used 75 toothpicks, then a box of toothpicks contains 450 toothpicks, so he used 36 * 75 = <<36*75=2700>>2700 toothpicks.
+If one box of toothpicks contains 450 toothpicks, then Eugene used 2700 / 450 = <<2700/450=6>>6 boxes of toothpicks.
+#### 6",
+decision,gsm8k-train-408,72,"The sum of the weights of the three adults is 140 x 3 = <<140*3=420>>420 pounds.
+The sum of the weight of the two children is 64 x 2 = <<64*2=128>>128 pounds.
+So the total weight of the", , adults,"The sum of the weights of the three adults is 140 x 3 = <<140*3=420>>420 pounds.
+The sum of the weight of the two children is 64 x 2 = <<64*2=128>>128 pounds.
+So the total weight of the adults and children is 420 + 128 = <<420+128=548>>548 pounds.
+The maximum weight of the next person to get in the elevator is 600 - 548 = <<600-548=52>>52 pounds.
+#### 52",
+decision,gsm8k-train-389,72,"Since November has 30 days, the town received 4 inches of rain for the first half of the month for 30/2 = 15 days.
+The total inches of rain that the town received for the 15 days is 15*4 = <<15*4=60>>60 inches.
+The rain", falling, fell,"Since November has 30 days, the town received 4 inches of rain for the first half of the month for 30/2 = 15 days.
+The total inches of rain that the town received for the 15 days is 15*4 = <<15*4=60>>60 inches.
+The rain fell at an average rate of 4*2 = <<4*2=8>>8 inches of rain per day.
+For the remainder of November, the town received a total of 8*15 = <<8*15=120>>120 inches of rain.
+Thus, the total amount of rainfall for the town in November is 120+60 = <<120+60=180>>180 inches of rain.
+#### 180",
+decision,gsm8k-train-37,149,"The cost of 5 pieces of hamburger is $3 x 5 = $<<3*5=15>>15.
+The cost of 4 sets of French fries is $1.20 x 4 = $<<1.20*4=4.80>>4.80.
+The cost of 5 cups of soda is $0.5 x 5 = $<<0.5*5=2.50>>2.50.
+So their total bill is $15 + $4.80 + $2.50 +$2.7 = $<<15+4.8+2.5+2.7=25>>25.
+",H,They,"The cost of 5 pieces of hamburger is $3 x 5 = $<<3*5=15>>15.
+The cost of 4 sets of French fries is $1.20 x 4 = $<<1.20*4=4.80>>4.80.
+The cost of 5 cups of soda is $0.5 x 5 = $<<0.5*5=2.50>>2.50.
+So their total bill is $15 + $4.80 + $2.50 +$2.7 = $<<15+4.8+2.5+2.7=25>>25.
+They split it equally among the 5 of them, so each of them will pay $25 / 5 = $<<25/5=5>>5.
+#### 5",
+decision,gsm8k-train-821,11,Tammy can eat twice as many pickle slices as Sammy, who,",","Tammy can eat twice as many pickle slices as Sammy, who can eat 15 pickle slices. So Tammy can eat 15 x 2 = 30 pickle slices.
+Ron eats 20% fewer pickle slices than Tammy, who can eat 30 pickle slices. So Ron can eat 30 - (30 x 20%) = 24 pickle slices.
+#### 24",
+decision,gsm8k-train-656,37,"If Zig wrote 60 books, four times as many books as Flo, Flo wrote 60/4=<<60/4=15>>15 books
+",Together,Z,"If Zig wrote 60 books, four times as many books as Flo, Flo wrote 60/4=<<60/4=15>>15 books
+Zig wrote 4 times as many books as Flo, so they wrote a total of 60+15=<<60+15=75>>75 books altogether.
+#### 75",
+decision,gsm8k-train-128,24,"Each room can fit 2*2 + 1 = <<2*2+1=5>>5 students.
+",Thus,The,"Each room can fit 2*2 + 1 = <<2*2+1=5>>5 students.
+The principal needs to book 30 / 5 = <<30/5=6>>6 rooms to fit all of the students in the class.
+#### 6",
+decision,gsm8k-train-16,59,"According to the ratio, for every 5 parts that Johnson gets, Mike gets 2 parts
+Since Johnson got $2500, each part is therefore $2500/5 = $<<2500/5=500>>500
+Mike", will, gets,"According to the ratio, for every 5 parts that Johnson gets, Mike gets 2 parts
+Since Johnson got $2500, each part is therefore $2500/5 = $<<2500/5=500>>500
+Mike gets 2 parts, which is $2 * $500 = $<<2*500=1000>>1000
+After spending $200 on a shirt, Mike will have $1000 - $200 = $<<1000-200=800>>800
+#### 800",
+decision,gsm8k-train-1086,5,Mr. Alonzo, was, harvested,"Mr. Alonzo harvested 245.5 kg of tomatoes.
+He sold 125.5 kg to Mrs. Maxwell and 78 kg to Mr. Wilson.
+So, the total amount of tomatoes sold is 125.5 kg + 78 kg = 203.5 kg.
+Therefore, the amount of tomatoes that are not sold is 245.5 kg - 203.5 kg = 42 kg.
+#### 42",
+decision,gsm8k-train-5,130,"are 80/100 * 10 = <<80/100*10=8>>8 more purple flowers than yellow flowers.
+So in Mark's garden, there are 10 + 8 = <<10+8=18>>18 purple flowers.
+Purple and yellow flowers sum up to 10 + 18 = <<10+18=28>>28 flowers.
+That means in Mark's garden there are 25/100 * 28 = <<25/100*28=7>>7 green flowers.
+",So,The,"There are 80/100 * 10 = <<80/100*10=8>>8 more purple flowers than yellow flowers.
+So in Mark's garden, there are 10 + 8 = <<10+8=18>>18 purple flowers.
+Purple and yellow flowers sum up to 10 + 18 = <<10+18=28>>28 flowers.
+That means in Mark's garden there are 25/100 * 28 = <<25/100*28=7>>7 green flowers.
+The total number of flowers in Mark's garden is 10 + 18 + 7 = <<10+18+7=35>>35 flowers.
+#### 35",
+decision,gsm8k-train-1101,58,"Olaf is 12 years + 3 years = <<12+3=15>>15 years old.
+Shannen is 15 years old - 2 years = <<15-2=13>>13 years old.
+Jack is 5", years, +,"Olaf is 12 years + 3 years = <<12+3=15>>15 years old.
+Shannen is 15 years old - 2 years = <<15-2=13>>13 years old.
+Jack is 5 + (2 * 13) = <<5+2*13=31>>31 years old.
+The sum of the ages of all 4 people is 12 years + 15 years + 13 years + 31 years = <<12+15+13+31=71>>71 years.
+#### 71",
+decision,gsm8k-train-213,25,"Ted planted 2 x 50 = <<2*50=100>>100 tomato seeds.
+",So,Mike,"Ted planted 2 x 50 = <<2*50=100>>100 tomato seeds.
+Mike planted 50 + 60 = <<50+60=110>>110 tomato seeds.
+Ted planted 60 - 20 = <<60-20=40>>40 tomato seeds.
+In total, they planted 100 + 110 + 40 = <<100+110+40=250>>250 tomato seeds.
+#### 250",
+decision,gsm8k-train-782,41,"Each dress takes 4 square meters of fabric to make, so the number of dresses she can make will be 56/4 = <<56/4=14>>14 dresses.
+",Each,Since,"Each dress takes 4 square meters of fabric to make, so the number of dresses she can make will be 56/4 = <<56/4=14>>14 dresses.
+Since each dress takes 3 hours to make, the total number of hours she has to work is 14 * 3 = <<14*3=42>>42 hours.
+#### 42",
+decision,gsm8k-train-783,21,"The zoo has 8 x 3 = <<8*3=24>>24 snakes.
+",It,So,"The zoo has 8 x 3 = <<8*3=24>>24 snakes.
+So, there are 24 x 2 = <<24*2=48>>48 monkeys.
+The zoo has also 8 + 24 = <<8+24=32>>32 parrots and snakes combined.
+So, there are 32 / 2 = <<32/2=16>>16 elephants.
+And there are 16 - 3 = <<16-3=13>>13 zebras.
+Therefore, the number of zebras is 13 fewer than monkeys, so the difference is 13 - 48 = -<<13-48=-35>>-35, which means there are 35 more zebras than monkeys.
+#### 35",
+decision,gsm8k-train-476,83,"Joey will earn 3 * $8 = $<<3*8=24>>24 mowing his neighbors’ lawns.
+He will earn 2 * $9 = $<<2*9=18>>18 selling his collectable figures.
+He will earn 10 * $5 = $<<10*5=50>>50 at his after-school job.
+",The,His,"Joey will earn 3 * $8 = $<<3*8=24>>24 mowing his neighbors’ lawns.
+He will earn 2 * $9 = $<<2*9=18>>18 selling his collectable figures.
+He will earn 10 * $5 = $<<10*5=50>>50 at his after-school job.
+His total earnings will be $24 + $18 + $50 = $<<24+18+50=92>>92
+Therefore, the High Jump sneakers will cost $92.
+#### 92",
+decision,gsm8k-train-218,41,"Ravi has 6 + 2 = <<6+2=8>>8 quarters.
+He has also 8 + 4 = <<8+4=12>>12 dimes.
+",A,The,"Ravi has 6 + 2 = <<6+2=8>>8 quarters.
+He has also 8 + 4 = <<8+4=12>>12 dimes.
+The value of 6 nickels is 6 x $0.05 = $0.30.
+The value of 8 quarters is 8 x $0.25 = $2.00.
+The value of 12 dimes is 12 x $0.10 = $1.20.
+Ravi has a total of $0.30 + $2.00 + $1.20 = $<<0.30+2+1.20=3.50>>3.50.
+#### 350",
+decision,gsm8k-train-449,25,"Half as many legs as a single spider has is 8/2=<<8/2=4>>4 legs.
+",1,If,"Half as many legs as a single spider has is 8/2=<<8/2=4>>4 legs.
+If the group of spiders has 10 more spiders than half as many legs as a single spider has, then the group has 4+10=<<4+10=14>>14 spiders.
+Each spider has 8 legs, so the group of spiders has 14*8=<<14*8=112>>112 total legs.
+#### 112",
+decision,gsm8k-train-566,40,"If the blue car can travel at 80 mph, then the green one can travel at 8*80=<<8*80=640>>640 mph
+",If,Similarly,"If the blue car can travel at 80 mph, then the green one can travel at 8*80=<<8*80=640>>640 mph
+Similarly, the red one can travel at 640*2=<<640*2=1280>>1280 mph
+Therefore, the red car can travel at a speed of 1280 mph.
+#### 1280",
+decision,gsm8k-train-7,22,"To the initial 2 pounds of jelly beans, he added enough brownies to cause the weight to triple,", bringing, which,"To the initial 2 pounds of jelly beans, he added enough brownies to cause the weight to triple, which means the weight became 2 * 3 = 6 pounds.
+Then, he added another 2 pounds of jelly beans, bringing the weight to 6 + 2 = 8 pounds.
+Finally, he added enough gummy worms to double the weight, which means the weight became 8 * 2 = 16 pounds.
+The final weight of the box of goodies was 16 pounds.
+#### 16",
+decision,gsm8k-train-70,44,"Tim has 68-30 = <<68-30=38>>38 apples.
+Harry has 38/2 = <<38/2=19>>19 apples.
+",####,So,"Tim has 68-30 = <<68-30=38>>38 apples.
+Harry has 38/2 = <<38/2=19>>19 apples.
+So, Harry has 19 apples.
+#### 19",
+decision,gsm8k-train-823,51,"There are 74-14 = <<74-14=60>>60 apples left after Ricki removes some.
+Samson removes 14*2 = <<14*2=28>>28 apples.
+",There,Therefore,"There are 74-14 = <<74-14=60>>60 apples left after Ricki removes some.
+Samson removes 14*2 = <<14*2=28>>28 apples.
+Therefore, there are 60-28 = <<60-28=32>>32 apples left by the end of the day.
+#### 32",
+decision,gsm8k-train-871,73,"Peter is 3 years older than Wayne who is 37 so Peter is 37+3 = <<37+3=40>>40 years old
+Julia is 2 years older than Peter who is 40 so Julia is 2+40 = <<2+40=42>>42 years old
+",It,In,"Peter is 3 years older than Wayne who is 37 so Peter is 37+3 = <<37+3=40>>40 years old
+Julia is 2 years older than Peter who is 40 so Julia is 2+40 = <<2+40=42>>42 years old
+In 2021, Wayne is 37 years old so previously Wayne was born in 2021-37 = <<2021-37=1984>>1984
+Peter is 40 years old so previously Peter was born in 2021-40 = <<2021-40=1981>>1981
+Julia is 42 years old so previously Julia was born in 2021-42 = <<2021-42=1979>>1979
+Since Julia was born in 1979, she was born in the year 1979.
+#### 1979",
+decision,gsm8k-train-967,0,,In,To,"To find out the temperature after one hour, we need to multiply the current temperature by (3 / 4).
+84 * (3 / 4) = 63
+To find the temperature decrease, we subtract the new temperature from the current temperature.
+84 - 63 = 21 degrees
+The temperature will decrease by 21 degrees.
+#### 21",
+decision,gsm8k-train-235,19,"Max gets 1+2=<<1+2=3>>3 trains per year.
+",He,Max,"Max gets 1+2=<<1+2=3>>3 trains per year.
+Max receives these trains for 5 years, which means he receives 3 trains/year x 5 years = <<3*5=15>>15 trains in total.
+After 5 years, Max's parents give him double the trains he already has, which means they give him 15 trains x 2 = <<15*2=30>>30 trains.
+So in total, Max has 15 trains + 30 trains = <<15+30=45>>45 trains.
+#### 45",
+decision,gsm8k-train-853,59,"If Eugene used all but 16 of the 52 cards, then he used 52-16=<<52-16=36>>36 cards.
+If for every card he used 75 toothpicks, then a box of toothpicks", would, can,"If Eugene used all but 16 of the 52 cards, then he used 52-16=<<52-16=36>>36 cards.
+If for every card he used 75 toothpicks, then a box of toothpicks can have at most 36 * 75 = <<36*75=2700>>2700 toothpicks.
+Eugene used all but 16 of the 52 cards, which is 36 cards.
+Therefore, Eugene used 36 * 75 = <<36*75=2700>>2700 toothpicks.
+If each box contains 450 toothpicks, then Eugene used 2700 / 450 = <<2700/450=6>>6 boxes of toothpicks.
+#### 6",
+decision,gsm8k-train-422,13,"Let M be the number of hours Bryan spends on marketing posts.
+",He,B,"Let M be the number of hours Bryan spends on marketing posts.
+Bryan spends 4 hours on customer outreach posts.
+Bryan spends half the time on advertisement posts, so he spends 4 / 2 = 2 hours on advertisement posts.
+The total time Bryan spends on customer outreach and advertisement posts is 4 + 2 = 6 hours.
+Bryan works 8 hours a day, so he has 8 - 6 = 2 hours left for marketing posts.
+Therefore, Bryan spends 2 hours each day on marketing posts.
+#### 2",
+decision,gsm8k-train-403,106,"If Kimiko is 28, Omi is 2 * 28 years = <<28*2=56>>56 years old.
+Arlette is 3/4 * 28 years = <<3/4*28=21>>21 years old.
+If you add up their ages, it sums to 21 years + 56 years + 28 years = <<21+56+28=105>>105 years
+",The,To,"If Kimiko is 28, Omi is 2 * 28 years = <<28*2=56>>56 years old.
+Arlette is 3/4 * 28 years = <<3/4*28=21>>21 years old.
+If you add up their ages, it sums to 21 years + 56 years + 28 years = <<21+56+28=105>>105 years
+To find the average, you need to divide this total by the number of people, which is 3 years.
+So the average age is 105 years / 3 people = 35 years.
+The average age of Kimiko, Omi, and Arlette is 35 years.
+#### 35",
+decision,gsm8k-train-852,144,"After first hour, 50 * 2 = <<50*2=100>>100 ants.
+After the second hour, 100 * 2 = <<100*2=200>>200 ants.
+After the third hour, 200 * 2 = <<200*2=400>>400 ants.
+After the fourth hour, 400 * 2 = <<400*2=800>>800 ants.
+After the fifth hour, 800 * 2 = <<800*2=1600>>1600 ants.
+",####,After,"After first hour, 50 * 2 = <<50*2=100>>100 ants.
+After the second hour, 100 * 2 = <<100*2=200>>200 ants.
+After the third hour, 200 * 2 = <<200*2=400>>400 ants.
+After the fourth hour, 400 * 2 = <<400*2=800>>800 ants.
+After the fifth hour, 800 * 2 = <<800*2=1600>>1600 ants.
+After 5 hours, there will be 1600 ants in the jar.
+#### 1600",
+decision,gsm8k-train-146,53,"Cory takes 22 + 3 = <<22+3=25>>25 minutes to clean her room.
+Blake takes 25 - 4 = <<25-4=21>>21 minutes to clean his room.
+",The,All,"Cory takes 22 + 3 = <<22+3=25>>25 minutes to clean her room.
+Blake takes 25 - 4 = <<25-4=21>>21 minutes to clean his room.
+All three spend 22 + 25 + 21 = <<22+25+21=68>>68 minutes each time they clean their rooms.
+If they clean their rooms twice a week, they spend 68 * 2 = <<68*2=136>>136 minutes each week.
+#### 136",
+decision,gsm8k-train-980,70,"In the first field, there are 13 rows * 4 corn cobs/row = <<13*4=52>>52 corn cobs.
+In the second field, there are 16 rows * 4 corn cobs/row = <<16*4=64>>64 corn cobs.
+",So,The,"In the first field, there are 13 rows * 4 corn cobs/row = <<13*4=52>>52 corn cobs.
+In the second field, there are 16 rows * 4 corn cobs/row = <<16*4=64>>64 corn cobs.
+The farm has grown a total of 52 corn cobs + 64 corn cobs = <<52+64=116>>116 corn cobs.
+#### 116",
+decision,gsm8k-train-782,41,"Each dress takes 4 square meters of fabric to make, so the number of dresses she can make will be 56/4 = <<56/4=14>>14 dresses.
+",Each,It,"Each dress takes 4 square meters of fabric to make, so the number of dresses she can make will be 56/4 = <<56/4=14>>14 dresses.
+It takes Melissa 3 hours to make each dress, so she will need 14 * 3 = <<14*3=42>>42 hours of work.
+Therefore, Melissa needs to work 42 hours to make all her dresses.
+#### 42",
+decision,gsm8k-train-656,37,"If Zig wrote 60 books, four times as many books as Flo, Flo wrote 60/4=<<60/4=15>>15 books
+",Together,The,"If Zig wrote 60 books, four times as many books as Flo, Flo wrote 60/4=<<60/4=15>>15 books
+The total number of books they wrote altogether is 60+15=<<60+15=75>>75 books
+#### 75",
+decision,gsm8k-train-43,77,"The second earthquake caused 2 * 4 = <<2*4=8>>8 buildings to collapse.
+The third earthquake caused 2 * 8 = <<2*8=16>>16 buildings to collapse.
+The fourth earthquake caused 16 * 2 = <<16*2=32>>32 buildings to collapse.
+Including the first earthquake,", the, in,"The second earthquake caused 2 * 4 = <<2*4=8>>8 buildings to collapse.
+The third earthquake caused 2 * 8 = <<2*8=16>>16 buildings to collapse.
+The fourth earthquake caused 16 * 2 = <<16*2=32>>32 buildings to collapse.
+Including the first earthquake, in total, 4 + 8 + 16 + 32 = <<4+8+16+32=60>>60 buildings collapsed.
+#### 60",
+decision,gsm8k-train-611,129," cut in half once.
+Each of these slices was cut in half again, yielding 2*2= <<2*2=4>>4 slices in total.
+Next, we divide the total amount of pepperoni slices by the number of pizza slices, as the pepperoni was spread evenly. We find there are 40/4= <<40/4=10>>10 slices of pepperoni per pizza slice.
+",Since,However,"First, we need to determine how many slices the pizza was cut into. To do this, we start by performing 1*2= <<1*2=2>>2 slices after the pizza was cut in half once.
+Each of these slices was cut in half again, yielding 2*2= <<2*2=4>>4 slices in total.
+Next, we divide the total amount of pepperoni slices by the number of pizza slices, as the pepperoni was spread evenly. We find there are 40/4= <<40/4=10>>10 slices of pepperoni per pizza slice.
+However, 1 slice of pepperoni fell off, making the slice of pizza given to Jelly after: 10-1= <<10-1=9>>9 slices of pepperoni.
+#### 9",
+decision,gsm8k-train-693,2,Ian gave, a, six,"Ian gave six roses to his mother, nine roses to his grandmother, and four roses to his sister, so he gave away a total of 6 + 9 + 4 = 19 roses.
+Since Ian started with twenty roses, he gave away 19 roses, leaving him with 20 - 19 = 1 rose.
+Therefore, Ian kept 1 rose.
+#### 1",
+decision,gsm8k-train-416,56,"In mid-June, the river is 5+10=<<5+10=15>>15 feet deep.
+In mid-July, the river is 15*3=<<15*3=45>>45 feet deep.
+",####,By,"In mid-June, the river is 5+10=<<5+10=15>>15 feet deep.
+In mid-July, the river is 15*3=<<15*3=45>>45 feet deep.
+By mid-July, the river is 45 feet deep.
+#### 45",
+decision,gsm8k-train-830,0,,1,If,"If 40% of the students have elected to learn from home, then the remaining students are 100% - 40% = 60%.
+Out of these 60%, only one group of students is physically in school, so 60% / 2 = 30% of the remaining students are present in school.
+Therefore, 30% of the students are present in school.
+#### 30",
+decision,gsm8k-train-972,54,"From the 9th floor, the elevator went down to the 9 - 7 = <<9-7=2>>2nd floor.
+Then went up to the 2 + 3 = <<2+3=5>>5th floor.
+Then,", went, it,"From the 9th floor, the elevator went down to the 9 - 7 = <<9-7=2>>2nd floor.
+Then went up to the 2 + 3 = <<2+3=5>>5th floor.
+Then, it went up to the 5 + 8 = <<5+8=13>>13th floor.
+The elevator is on the 13th floor, which means there are 13 floors in the building.
+#### 13",
+decision,gsm8k-train-689,55,"The cost of the Lyft ride is $22 - $3 = $<<22-3=19>>19
+The original cost of the taxi ride is $19 - $4 = $<<19-4=15>>15
+",T,If,"The cost of the Lyft ride is $22 - $3 = $<<22-3=19>>19
+The original cost of the taxi ride is $19 - $4 = $<<19-4=15>>15
+If Trevor tips the taxi driver 20% of the original cost, he tips $15 x 20% = $<<15*0.2=3>>3
+The total cost of the ride downtown, including the tip, is $15 + $3 = $<<15+3=18>>18
+#### 18",
+decision,gsm8k-train-1019,0,,Before,First,"First, we need to determine the total number of cookies baked by both Alice and Bob.
+Alice baked 74 chocolate chip cookies initially and then added 5 more, so she baked a total of 74 + 5 = 79 chocolate chip cookies.
+Bob baked 7 peanut butter cookies initially and then added 36 more, so he baked a total of 7 + 36 = 43 peanut butter cookies.
+Now, we can add the total number of cookies baked by both Alice and Bob: 79 + 43 = 122 cookies.
+We know that they had 93 edible cookies at the end, so we can subtract that number from the total number of cookies baked to find out how many were accidentally thrown on the floor: 122 - 93 = 29 cookies.
+Therefore, 29 cookies were accidentally thrown on the floor.
+#### 29",
+decision,gsm8k-train-1026,31,"If Chiquita is 5 feet tall, then Mr. Martinez is 5+2 = <<5+2=7>>7 feet tall
+",Together,Combined,"If Chiquita is 5 feet tall, then Mr. Martinez is 5+2 = <<5+2=7>>7 feet tall
+Combined, their height is 7+5 = <<7+5=12>>12 feet
+#### 12",
+decision,gsm8k-train-539,40,"The company has chopped down a total of 200 + 300 = <<200+300=500>>500 trees throughout the year.
+They", plant, need,"The company has chopped down a total of 200 + 300 = <<200+300=500>>500 trees throughout the year.
+They need to plant 3 trees for every 1 tree they chop down, so they need to plant an additional 3 * 500 = <<3*500=1500>>1500 trees.
+The company needs to plant 1500 more trees.
+#### 1500",
+decision,gsm8k-train-503,0,,The,To,"To find out how many pages Yasna will need to read every day, we need to divide the total number of pages in both books by the number of days in two weeks, which is 14. 
+The total number of pages in both books is 180 pages + 100 pages = 280 pages.
+To find out the number of pages Yasna will read every day, we divide the total number of pages by the number of days: 280 pages / 14 days = 20 pages per day.
+Therefore, Yasna will need to read 20 pages every day.
+#### 20",
+decision,gsm8k-train-195,50,"Mary spent 5 x $6 = $<<5*6=30>>30 on drinks.
+She spent 10 x $14 = $<<10*14=140>>140 on pizzas.
+",She,The,"Mary spent 5 x $6 = $<<5*6=30>>30 on drinks.
+She spent 10 x $14 = $<<10*14=140>>140 on pizzas.
+The total amount spent on drinks and pizzas is $30 + $140 = $<<30+140=170>>170.
+She received $200 - $170 = $<<200-170=30>>30 in change.
+#### 30",
+decision,gsm8k-train-262,62,"Since Jill's basket can hold twice as much as Jack's, and Jack's is capable of holding 12 apples in total, this means Jill's basket can hold 12*2=<<12*2=24>>24 apples in total.
+Since Jack has 4 less than", the, his,"Since Jill's basket can hold twice as much as Jack's, and Jack's is capable of holding 12 apples in total, this means Jill's basket can hold 12*2=<<12*2=24>>24 apples in total.
+Since Jack has 4 less than his basket's capacity, Jack has 12-4=<<12-4=8>>8 apples left.
+Therefore, Jack's current number of apples can fit into Jill's basket 24/8=<<24/8=3>>3 times.
+#### 3",
+decision,gsm8k-train-179,112,"Colton gave away 4 stickers * 3 friends = <<4*3=12>>12 stickers.
+Colton gave Mandy 2 + 12 stickers = <<2+12=14>>14 stickers.
+Colton gave Justin 14 stickers - 10 = <<14-10=4>>4 stickers.
+In total, Colton gave away 12 + 14 + 4 stickers = <<12+14+4=30>>30 stickers.
+Colton",'s, started,"Colton gave away 4 stickers * 3 friends = <<4*3=12>>12 stickers.
+Colton gave Mandy 2 + 12 stickers = <<2+12=14>>14 stickers.
+Colton gave Justin 14 stickers - 10 = <<14-10=4>>4 stickers.
+In total, Colton gave away 12 + 14 + 4 stickers = <<12+14+4=30>>30 stickers.
+Colton started with 72 stickers and gave away 30 stickers, so he has 72 - 30 = <<72-30=42>>42 stickers left.
+#### 42",
+decision,gsm8k-train-838,55,"The boat had 20 - 3 = <<20-3=17>>17 sheep make it to shore.
+3 sheep drowned, so 2 * 3 = <<2*3=6>>6 cows drowned.
+10 cows on the boat", -, make,"The boat had 20 - 3 = <<20-3=17>>17 sheep make it to shore.
+3 sheep drowned, so 2 * 3 = <<2*3=6>>6 cows drowned.
+10 cows on the boat make it to shore because 10 - 6 = <<10-6=4>>4 made it to shore.
+14 dogs made it to shore because 14 - 0 = <<14-0=14>>14 made it to shore.
+In total, 17 sheep + 4 cows + 14 dogs = <<17+4+14=35>>35 animals made it to shore.
+#### 35",
+decision,gsm8k-train-1029,99,"Bess produces 2 pails every day.
+Brownie produces 3 times as much * 2 = <<3*2=6>>6 pails every day.
+Daisy produces 2 + 1 more pail than Bess = <<2+1=3>>3 pails every day.
+Bess, Brownie, and Daisy together produce 2 + 6 + 3 = <<2+6+3=11>>11 pails every day.
+",A,So,"Bess produces 2 pails every day.
+Brownie produces 3 times as much * 2 = <<3*2=6>>6 pails every day.
+Daisy produces 2 + 1 more pail than Bess = <<2+1=3>>3 pails every day.
+Bess, Brownie, and Daisy together produce 2 + 6 + 3 = <<2+6+3=11>>11 pails every day.
+So, Farmer Red gets 11 * 7 = <<11*7=77>>77 pails of milk every week.
+#### 77",
+decision,gsm8k-train-17,148,"2>>22
+John also took away 6 pink hard hats, leaving 22-6 = <<22-6=16>>16 pink hard hats in the truck.
+If John also took twice as many green hard hats as pink hard hats, he took 2*6 = <<6*2=12>>12 green hard hats.
+The total number of green hard hats that remained in the truck is 15-12 = <<15-12=3>>3
+",In,The,"If there were 26 pink hard hats and Carl took away 4 pink hard hats, the number of pink hard hats that remained is 26-4 = <<26-4=22>>22
+John also took away 6 pink hard hats, leaving 22-6 = <<22-6=16>>16 pink hard hats in the truck.
+If John also took twice as many green hard hats as pink hard hats, he took 2*6 = <<6*2=12>>12 green hard hats.
+The total number of green hard hats that remained in the truck is 15-12 = <<15-12=3>>3
+The total number of hard hats left in the truck is 16 pink hard hats + 3 green hard hats + 24 yellow hard hats = <<16+3+24=43>>43 hard hats
+#### 43",
+decision,gsm8k-train-833,0,,H,To,"To solve this problem, we need to find out how far Hannah walked and then add it to the 18 kilometers Nadia walked. If Nadia walked 18 kilometers, then Hannah walked half of that, which is 18 / 2 = 9 kilometers. To find the total distance walked by both girls, we add Nadia's distance to Hannah's distance: 18 kilometers + 9 kilometers = 27 kilometers. #### 27",
+decision,gsm8k-train-526,50,"On Monday, Mack writes 60 / 30 = <<60/30=2>>2 pages
+On Tuesday, Mack writes 45 / 15 = <<45/15=3>>3 pages
+",In,On,"On Monday, Mack writes 60 / 30 = <<60/30=2>>2 pages
+On Tuesday, Mack writes 45 / 15 = <<45/15=3>>3 pages
+On Wednesday, Mack writes 5 pages
+So, in total Mack writes 2 + 3 + 5 = <<2+3+5=10>>10 pages from Monday to Wednesday.
+#### 10",
+decision,gsm8k-train-176,50,"A total of 20 x 100 = <<20*100=2000>>2000 grams are sold every week.
+Since 1 kilogram is equal to 1000 grams,", then, the,"A total of 20 x 100 = <<20*100=2000>>2000 grams are sold every week.
+Since 1 kilogram is equal to 1000 grams, the total amount of sugar sold each week is 2000 / 1000 = <<2000/1000=2>>2 kilograms.
+#### 2",
+decision,gsm8k-train-146,61,"Cory takes 22 + 3 = <<22+3=25>>25 minutes to clean her room.
+Blake takes 25 - 4 = <<25-4=21>>21 minutes to clean his room.
+The three of them can clean their room", in, for,"Cory takes 22 + 3 = <<22+3=25>>25 minutes to clean her room.
+Blake takes 25 - 4 = <<25-4=21>>21 minutes to clean his room.
+The three of them can clean their room for a total of 22 + 25 + 21 = <<22+25+21=68>>68 minutes.
+If they have to clean their rooms twice a week, all three of them will spend 68 x 2 = <<68*2=136>>136 minutes cleaning their rooms each week.
+#### 136",
+decision,gsm8k-train-12,53,"Half of the number of Randy's mango trees is 60/2 = <<60/2=30>>30 trees.
+So Randy has 30 - 5 = <<30-5=25>>25 coconut trees.
+",Therefore,The,"Half of the number of Randy's mango trees is 60/2 = <<60/2=30>>30 trees.
+So Randy has 30 - 5 = <<30-5=25>>25 coconut trees.
+The total number of trees Randy has in all on his farm is 60 + 25 = <<60+25=85>>85 trees.
+#### 85",
+decision,gsm8k-train-704,81,"Sabrina had 20 - 10 = <<20-10=10>>10 cookies left after giving 10 cookies to her brother.
+Sabrina's mother gave her 10/2 = <<10/2=5>>5 cookies.
+So, she had 10 + 5 = <<10+5=15>>15 cookies", then, left,"Sabrina had 20 - 10 = <<20-10=10>>10 cookies left after giving 10 cookies to her brother.
+Sabrina's mother gave her 10/2 = <<10/2=5>>5 cookies.
+So, she had 10 + 5 = <<10+5=15>>15 cookies left.
+Sabrina gave her sister 15 * 2 / 3 = <<15*(2/3)=10>>10 cookies.
+Therefore, there are 15 - 10 = <<15-10=5>>5 cookies left with Sabrina.
+#### 5",
+decision,gsm8k-train-590,47,"Since there are four types of chocolate bars and each type has 25 bars, the total number of chocolate bars is 25*4=<<25*4=100>>100.
+Since there is", a, one,"Since there are four types of chocolate bars and each type has 25 bars, the total number of chocolate bars is 25*4=<<25*4=100>>100.
+Since there is one complete set of each type of chocolate bar, the percentage of each type of chocolate bar is (25/100) * 100%=<<25/100*100=25>>25%.
+Therefore, the percentage of each type of chocolate bar is 25%.
+#### 25",
+decision,gsm8k-train-931,28,"Malcom has 20 cards + 8 cards = <<20+8=28>>28 cards.
+Malcom gives", away, half,"Malcom has 20 cards + 8 cards = <<20+8=28>>28 cards.
+Malcom gives half of his cards to Mark, so he gives 28 cards / 2 = <<28/2=14>>14 cards to Mark.
+Malcom has 28 cards - 14 cards = <<28-14=14>>14 cards left.
+#### 14",
+decision,gsm8k-train-522,50,"5 less than 20 hoots per minute is 20-5=<<20-5=15>>15 hoots per minute.
+If one barnyard owl makes 5 hoot sounds per minute, then", , the,"5 less than 20 hoots per minute is 20-5=<<20-5=15>>15 hoots per minute.
+If one barnyard owl makes 5 hoot sounds per minute, then the noise heard coming out of the barn is coming from 15/5=<<15/5=3>>3 barnyard owls.
+#### 3",
+decision,gsm8k-train-844,19,"Andy will be 2*6=<<2*6=12>>12.
+",Now,In,"Andy will be 2*6=<<2*6=12>>12.
+In 5 years Andy will be 12, so he is currently 12-5=<<12-5=7>>7.
+Andy is 7 right now and Rahim is currently 6, so Andy is 7-6=<<7-6=1>>1 year older than Rahim.
+#### 1",
+decision,gsm8k-train-357,50,"Catriona has 8 + 4 = <<8+4=12>>12 angelfish.
+She also has 12 x 2 = <<12*2=24>>24 guppies.
+Thus,", she, the,"Catriona has 8 + 4 = <<8+4=12>>12 angelfish.
+She also has 12 x 2 = <<12*2=24>>24 guppies.
+Thus, the total number of fish in her aquarium is 12 + 24 + 8 = <<12+24+8=44>>44.
+#### 44",
+decision,gsm8k-train-567,114,"ater bottles, the total number of water bottles she had was 12 bottles/dozen * 5 dozen = <<12*5=60>>60 bottles
+To buy her friend the birthday gift, Lilith originally had to sell her water bottles for a total of 60 bottles * $2/bottle = $<<60*2=120>>120
+When she reduced the price to $1.85 to meet the", regular, cost,"Lilith had 5 dozen water bottles, and since a dozen has 12 water bottles, the total number of water bottles she had was 12 bottles/dozen * 5 dozen = <<12*5=60>>60 bottles
+To buy her friend the birthday gift, Lilith originally had to sell her water bottles for a total of 60 bottles * $2/bottle = $<<60*2=120>>120
+When she reduced the price to $1.85 to meet the cost of her friend's birthday gift, the total amount of money she could sell her water bottles for was 60 bottles * $1.85 / bottle = $<<60*1.85=111>>111
+The amount of money Lilith will still need to find to buy her friend the birthday gift after selling her water bottles at the reduced cost is $120 - $111 = $<120-111=9>9
+#### 9",

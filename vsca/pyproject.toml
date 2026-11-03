@@ -1,0 +1,30 @@
+[project]
+name = "vsca"
+version = "0.1.0"
+description = "Verifiable Semantic Credit Assignment: set-valued, verifier-certified SFT targets (GSM8K)"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.3",
+  "transformers>=4.46",
+  "peft>=0.13",
+  "datasets>=2.20",
+  "pyyaml>=6.0",
+  "numpy>=1.26",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+eval = ["lm-eval>=0.4.5"]
+# vLLM pins its own torch/transformers, so it is installed into a separate environment (.venv-vllm), not the
+# shared .venv used by sg and privred. See README, "vLLM backend".
+vllm = ["vllm>=0.33"]
+
+[project.scripts]
+vsca = "vsca.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

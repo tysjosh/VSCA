@@ -1,0 +1,25 @@
+# Tiny end-to-end check that every code path runs (not a scientific run). CPU only. Use after base.yaml.
+device: cpu
+amp: false
+num_workers: 0
+limit_train_per_class: 8
+limit_val_per_class: 1
+limit_test: 200
+limit_audit_per_class: 2
+epochs: 1
+batch_size: 64
+simclr_epochs: 1
+simclr_batch_size: 64
+search_iters: 2000
+search_restarts: 2
+probe_linear_iters: 20
+M: 4
+M0: 4
+MB: 4
+K_folds: 2
+Q: 2
+Q_true_hier: 1
+eta: 0.04   # |R| = 32 of 800, 2 per class
+n_boot: 50
+n_vnn: 5
+keep_models: false

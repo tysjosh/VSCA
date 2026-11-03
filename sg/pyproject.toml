@@ -1,0 +1,24 @@
+[project]
+name = "sg"
+version = "0.1.0"
+description = "Semantic grouping study: hierarchical auxiliary supervision vs. matched partitions (CIFAR-100, iNat-100)"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.3",
+  "torchvision>=0.18",
+  "numpy>=1.26",
+  "pyyaml>=6.0",
+  "tqdm>=4.66",
+  "scikit-learn>=1.3",
+  "scipy>=1.11",
+]
+
+[project.scripts]
+sg = "sg.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
