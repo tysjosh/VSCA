@@ -14,8 +14,12 @@ SEEDS="0 1 2 3 4"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 [ -f "$OUT/best_lr.json" ] || { echo "missing $OUT/best_lr.json: finish the tune stage first"; exit 1; }
 lr_of() { "$PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$OUT/best_lr.json" "$1"; }
+lr_tag() {  # the learning rate as spelled in tune run names (best_lr.json stores floats, e.g. 0.0001 -> 1e-4)
+  "$PY" -c 'import json,sys; v=json.load(open(sys.argv[1]))[sys.argv[2]]; print(next(s for s in sys.argv[3].split() if float(s)==v))' \
+    "$OUT/best_lr.json" "$1" "5e-5 1e-4 2e-4 4e-4"
+}
 run_dir() {  # seed 0 reuses the tune run at the chosen learning rate
-  if [ "$2" = 0 ]; then echo "$OUT/tune_$1_lr$(lr_of $1)"; else echo "$OUT/gonogo_$1_s$2"; fi
+  if [ "$2" = 0 ]; then echo "$OUT/tune_$1_lr$(lr_tag $1)"; else echo "$OUT/gonogo_$1_s$2"; fi
 }
 extra() { [ "$1" = vsca ] && echo "--set cert_path=$OUT/cert_base.jsonl"; }
 
