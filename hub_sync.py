@@ -24,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 IGNORE = ["**/*.tmp", "**/*.snapshot/**", "**/__pycache__/**"]
-LIGHT_SKIP = ["**/adapter_last/**", "tune_*/adapter_best/**"]
+LIGHT_SKIP = ["**/adapter_last/**", "**/tune_*/adapter_best/**"]
 
 
 def api():
@@ -58,7 +58,7 @@ def pull(runs: Path, repo: str, full: bool) -> None:
     t0 = time.time()
     tmp = snapshot_download(repo_id=repo, repo_type="dataset", token=os.environ.get("HF_TOKEN"),
                             local_dir=str(runs.parent / ".hub_pull"), allow_patterns=["runs/**"],
-                            ignore_patterns=IGNORE + ([] if full else [f"runs/{p}" for p in LIGHT_SKIP]))
+                            ignore_patterns=IGNORE + ([] if full else LIGHT_SKIP))
     src = Path(tmp) / "runs"
     n = 0
     for f in src.rglob("*"):

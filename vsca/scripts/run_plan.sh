@@ -82,7 +82,11 @@ tune)  # learning rate per method on the validation split (test never used)
   # VSCA last: its runs certify (expensive), so the cheap methods finish first.
   for m in sft random rho token_cleaning sstoken trimsft claim_mask claim_upweight unlikelihood cf_select vsca; do
     for lr in $LRS; do
-      "$PY" -m vsca.cli train $C --set method=$m --set lr=$lr --set seed=0 --set run_name=tune_${m}_lr$lr $(method_args $m)
+      extra=$(method_args $m)
+      # VSCA learning rate is tuned on the fixed base-model certificates from `scores` (identical to the first
+      # epoch of a refreshed run); the main runs re-certify every epoch. See README "VSCA tuning".
+      [ "$m" = vsca ] && extra="--set cert_path=$OUT/cert_base.jsonl"
+      "$PY" -m vsca.cli train $C --set method=$m --set lr=$lr --set seed=0 --set run_name=tune_${m}_lr$lr $extra
     done
   done
   "$PY" - "$OUT" <<'EOF'

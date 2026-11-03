@@ -125,6 +125,13 @@ HF rate (19% of searched decision positions on the 64-example probe). A run must
 `rollout_backend` is part of the run config, so resuming with the other backend is refused. Locally,
 `scripts/vllm_plumbing_test.py` checks the vLLM code path with a stand-in engine (CPU).
 
+## VSCA tuning
+
+`tune` picks VSCA's learning rate from the same 4-value grid as every other method, but on the fixed base-model
+certificates written by `scores` (`cert_base.jsonl`) instead of re-certifying every epoch. A refreshed run certifies
+its first epoch with the untrained model, so the two agree for the first epoch and differ only in epochs 2-3. The
+12-seed main runs re-certify every epoch as the paper specifies. This must be stated in the paper's tuning protocol.
+
 **Compute-matched SFT.** `main` trains `sft_matched_s*` with `SFT_MATCHED_EPOCHS` epochs (default 6). Set it after the first VSCA run so that total GPU-hours in `compute.json` (certification + training) match: `epochs ≈ 3 × (vsca total GPU-h) / (sft train GPU-h)`.
 
 **Cost.** Certification is the expensive part. Per response it runs up to `B·k·M = 64` rollouts of up to 320 tokens, plus `k` short greedy completions per claim token. GSM8K train has 6,726 responses, so one refresh is roughly 430k rollouts, and `refresh: epoch` repeats it before each of 3 epochs. With HuggingFace `generate` this takes many GPU-hours per refresh. Two ways to cut it, both of which must be reported: `refresh=once`, or a vLLM-based rollout backend (not included).
