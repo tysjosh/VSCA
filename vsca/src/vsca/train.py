@@ -54,7 +54,7 @@ def _cf_term(model, tok, batch, logits, cfg: Config, rng: random.Random, device)
             jobs.append((b, ex, p))
     if not jobs:
         return None
-    jobs = rng.sample(jobs, min(len(jobs), 16))
+    jobs = rng.sample(jobs, min(len(jobs), cfg.cf_max_pairs))
     s_gold = []
     for b, ex, p in jobs:
         P = len(ex.prompt_ids)
@@ -69,12 +69,15 @@ def _cf_term(model, tok, batch, logits, cfg: Config, rng: random.Random, device)
     for i, s in enumerate(seqs):
         ids[i, : len(s)] = torch.tensor(s)
         mask[i, : len(s)] = 1
-    cf_logits = model(input_ids=ids.to(device), attention_mask=mask.to(device)).logits
+    # Run the decoder (LoRA layers included) and apply the LM head only at the counterfactual positions:
+    # full-vocabulary logits for every position of every sequence do not fit next to the main batch.
+    base = model.get_base_model() if hasattr(model, "get_base_model") else model
+    hidden = base.model(input_ids=ids.to(device), attention_mask=mask.to(device)).last_hidden_state
     s_cf = []
     for i, (_, ex, p) in enumerate(jobs):
         n = len(p["cf_ids"])
         start = len(seqs[i]) - n
-        lg = cf_logits[i, start - 1 : start - 1 + n].float()
+        lg = base.lm_head(hidden[i, start - 1 : start - 1 + n]).float()
         tgt = torch.tensor(p["cf_ids"], device=device)
         s_cf.append(torch.log_softmax(lg, -1).gather(-1, tgt[:, None]).mean())
     return pairwise_cf_loss(torch.stack(s_gold), torch.stack(s_cf), cfg.cf_tau)

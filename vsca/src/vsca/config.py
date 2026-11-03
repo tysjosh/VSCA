@@ -106,6 +106,7 @@ class Config:
     cf_gamma: float = 0.0
     cf_lambda: float = 0.1
     cf_tau: float = 1.0
+    cf_max_pairs: int = 4  # counterfactual pairs sampled per micro-batch for the pairwise term
     cf_regime: str = "claim"  # "claim" or "final" (final-answer verifier, no propagation)
 
     # evaluation
