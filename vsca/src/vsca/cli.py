@@ -92,6 +92,26 @@ def cmd_eval(args):
     print(json.dumps(summ, indent=2))
 
 
+def cmd_passk(args):
+    from .data import load_split
+    from .evaluate import evaluate_passk
+    from .modeling import load_tokenizer
+    from .utils import ComputeLog
+
+    cfg = _cfg(args)
+    out = Path(args.out)
+    if cfg.resume and out.with_suffix(".summary.json").exists():
+        print(f"[resume] {out} already evaluated; skipping")
+        print(out.with_suffix(".summary.json").read_text())
+        return
+    tok = load_tokenizer(cfg.model_name)
+    recs = load_split(cfg.data_dir, args.split, cfg.limit_test)
+    with ComputeLog(out.with_suffix(".compute.json")).phase(f"passk_{args.split}"):
+        summ = evaluate_passk(cfg, tok, recs, args.adapter, args.n, args.temperature, out, seed=cfg.seed)
+    out.with_suffix(".summary.json").write_text(json.dumps(summ, indent=2))
+    print(json.dumps(summ, indent=2))
+
+
 def cmd_diagnose(args):
     from . import diagnostics as D
     from .data import load_split
@@ -166,6 +186,12 @@ def main(argv=None):
     sp = add("eval", cmd_eval)
     sp.add_argument("--adapter", default=None)
     sp.add_argument("--split", default="gsm8k_test", help="gsm8k_test | gsm8k_val | svamp_all")
+    sp.add_argument("--out", required=True)
+    sp = add("passk", cmd_passk)
+    sp.add_argument("--adapter", default=None)
+    sp.add_argument("--split", default="gsm8k_test")
+    sp.add_argument("--n", type=int, default=8)
+    sp.add_argument("--temperature", type=float, default=0.7)
     sp.add_argument("--out", required=True)
     sp = add("diagnose", cmd_diagnose)
     sp.add_argument("which", choices=["taxonomy", "mass", "audit", "earlier_score"])
