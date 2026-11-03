@@ -99,7 +99,11 @@ def _same_config(run_dir, cfg: Config) -> None:
     old = json.loads(p.read_text())
     new = json.loads(json.dumps(cfg.to_dict()))
     keys = (set(old) | set(new)) - _SESSION_KEYS
-    diff = sorted(k for k in keys if old.get(k) != new.get(k))
+    defaults = Config().to_dict()
+    # A setting added after the run was created is absent from its config.json; it is a mismatch only if the
+    # requested value differs from the default (the value the run implicitly used).
+    diff = sorted(k for k in keys
+                  if not (k not in old and new.get(k) == defaults.get(k)) and old.get(k) != new.get(k))
     if diff:
         raise SystemExit(
             f"{run_dir}: an existing run used a different config ({', '.join(diff)}). "
