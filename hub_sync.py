@@ -9,7 +9,7 @@ or a prior `hf auth login`.
 
 push uploads only new or changed files (content-addressed, so unchanged files are not re-sent) and never
 deletes anything in the repo. Each push is a commit, so earlier states can be recovered.
-pull skips adapters of tuning runs and every adapter_last/ by default; --full restores everything.
+pull skips every adapter_last/ by default; --full restores everything.
 Training checkpoints (ckpt.pt) exist only for unfinished runs and are always kept, so resume works.
 """
 
@@ -24,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 IGNORE = ["**/*.tmp", "**/*.snapshot/**", "**/__pycache__/**"]
-LIGHT_SKIP = ["**/adapter_last/**", "**/tune_*/adapter_best/**"]
+LIGHT_SKIP = ["**/adapter_last/**"]  # best adapters are kept: later stages evaluate or reuse them
 
 
 def api():
