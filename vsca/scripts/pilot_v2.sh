@@ -13,7 +13,11 @@ OUT=runs/$(basename "$MODEL")
 P=$OUT/v2pilot
 C="--config configs/base.yaml --set model_name=$MODEL --set out_dir=$OUT"
 V2_LR=5e-5
-ARMS="rft_verified stepdpo_fork vsca2 vsca2_uncertified vsca2_nogrounding"
+# Overrides for running the decision path first (run_v2_seedwise.sh): ARMS="vsca2 rft_verified" NOGR=0 SVAMP=0 EVAL_REUSED=0
+ARMS=${ARMS:-rft_verified stepdpo_fork vsca2 vsca2_uncertified vsca2_nogrounding}
+NOGR=${NOGR:-1}         # 0: skip the no-grounding pipeline dirs (only vsca2_nogrounding needs them)
+SVAMP=${SVAMP:-1}       # 0: skip the SVAMP eval (secondary); a later run with SVAMP=1 adds it
+EVAL_REUSED=${EVAL_REUSED:-1}  # 0: skip the extra evals of the reused SFT / claim-span masking runs (their test.jsonl exists)
 REUSED="sft claim_mask"
 SEEDS=${SEEDS:-0 1 2}  # e.g. SEEDS=0 to build and train one seed at a time; stats always needs all three
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -97,16 +101,20 @@ onpolicy() {  # Decision 2: one pipeline dir per seed; the no-grounding dir reus
     local a; a=$(sft_adapter $s) || exit 1
     "$PY" -m vsca.cli onpolicy $C --set seed=$s --set init_adapter="$a" --out "$OUT/v2_onpolicy_s$s"
     check $? "onpolicy s$s"
-    "$PY" -m vsca.cli onpolicy $C --set seed=$s --set init_adapter="$a" --set vplus_grounding=false \
-      --set onpolicy_samples="$OUT/v2_onpolicy_s$s/samples.jsonl" --out "$OUT/v2_onpolicy_nogr_s$s"
-    check $? "onpolicy nogrounding s$s"
+    if [ "$NOGR" = 1 ]; then
+      "$PY" -m vsca.cli onpolicy $C --set seed=$s --set init_adapter="$a" --set vplus_grounding=false \
+        --set onpolicy_samples="$OUT/v2_onpolicy_s$s/samples.jsonl" --out "$OUT/v2_onpolicy_nogr_s$s"
+      check $? "onpolicy nogrounding s$s"
+    fi
   done
 }
 evals() {  # evals <run dir> <tag>: greedy test + SVAMP, then the V+ trace diagnostic (skips existing outputs)
   "$PY" -m vsca.cli eval $C --set limit_test=None --adapter "$1/adapter_best" --split gsm8k_test --out "$1/test.jsonl"
   check $? "eval test $2"
-  "$PY" -m vsca.cli eval $C --set limit_test=None --adapter "$1/adapter_best" --split svamp_all --out "$1/svamp.jsonl"
-  check $? "eval svamp $2"
+  if [ "$SVAMP" = 1 ]; then
+    "$PY" -m vsca.cli eval $C --set limit_test=None --adapter "$1/adapter_best" --split svamp_all --out "$1/svamp.jsonl"
+    check $? "eval svamp $2"
+  fi
   if [ ! -f "$1/diag_vplus_trace.json" ]; then
     "$PY" -m vsca.cli diagnose vplus_trace $C --eval_file "$1/test.jsonl" --split gsm8k_test --out_dir "$1"
     check $? "vplus_trace $2"
@@ -122,6 +130,7 @@ train_and_eval() {
       check $? "train $m s$s"
       evals "$r" "$m s$s"
     done
+    [ "$EVAL_REUSED" = 1 ] || continue
     for m in $REUSED; do
       r=$(run_dir $m $s)
       [ -d "$r/adapter_best" ] || { echo "[pilot_v2] missing $r/adapter_best: reused $m runs are not retrained"; exit 1; }
