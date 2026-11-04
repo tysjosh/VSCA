@@ -10,9 +10,11 @@
 cd ~/VSCA/vsca || exit 1
 export SESSION_DEADLINE=$(cat ~/VSCA/deadline) VSCA_DEADLINE=$(cat ~/VSCA/deadline)
 log() { echo "$(date +%H:%M) $*" >> ~/VSCA/v2_progress.log; }
-step() {  # step <log name> <env...> -- <pilot_v2 stage>
+step() {  # step <log name> [VAR=value ...] <pilot_v2 stage>
   local name=$1; shift
-  env "$@" bash scripts/pilot_v2.sh > ~/VSCA/v2_$name.log 2>&1; rc=$?; log "$name rc=$rc"; return $rc
+  local stage=${!#}
+  env "${@:1:$#-1}" bash scripts/pilot_v2.sh "$stage" > ~/VSCA/v2_$name.log 2>&1; rc=$?; log "$name rc=$rc"
+  return $rc
 }
 run() {
   log start
