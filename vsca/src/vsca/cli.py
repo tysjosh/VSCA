@@ -168,8 +168,9 @@ def cmd_diagnose(args):
             from .utils import ComputeLog
 
             op_dir = out_dir / "onpolicy"
+            cfg.init_adapter = args.adapter or cfg.init_adapter  # recorded in onpolicy_config.json
             tok = load_tokenizer(cfg.model_name)
-            model, _ = load_model(cfg, adapter=args.adapter or cfg.init_adapter)
+            model, _ = load_model(cfg, adapter=cfg.init_adapter)
             prepare(model, tok, load_split(cfg.data_dir, "gsm8k_train", cfg.limit_train), cfg, op_dir,
                     clog=ComputeLog(Path(op_dir) / "compute.json"))
         res = D.fork_recoverability(op_dir)
