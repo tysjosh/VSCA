@@ -139,6 +139,12 @@ def cmd_diagnose(args):
         if args.with_model:
             model, _ = load_model(cfg)
             res["pairwise_saturation"] = D.pairwise_saturation(model, tok, exs, cfg.cf_tau)
+    elif args.which == "grounding":
+        res = D.grounding_coverage(args.csv, cfg)
+    elif args.which == "vplus_trace":
+        if not args.eval_file:
+            raise SystemExit("vplus_trace needs --eval_file (output of `vsca eval`)")
+        res = D.vplus_trace(read_jsonl(args.eval_file), load_split(cfg.data_dir, args.split), cfg)
     (out_dir / f"diag_{args.which}.json").write_text(json.dumps(res, indent=2))
     print(json.dumps(res, indent=2))
 
@@ -194,8 +200,10 @@ def main(argv=None):
     sp.add_argument("--temperature", type=float, default=0.7)
     sp.add_argument("--out", required=True)
     sp = add("diagnose", cmd_diagnose)
-    sp.add_argument("which", choices=["taxonomy", "mass", "audit", "earlier_score"])
+    sp.add_argument("which", choices=["taxonomy", "mass", "audit", "earlier_score", "grounding", "vplus_trace"])
     sp.add_argument("--eval_file")
+    sp.add_argument("--csv", default="../labeling/error_taxonomy_sft.csv", help="grounding: labelled taxonomy CSV")
+    sp.add_argument("--split", default="gsm8k_test", help="vplus_trace: split the eval file was produced on")
     sp.add_argument("--cert")
     sp.add_argument("--with_model", action="store_true")
     sp.add_argument("--out_dir", default="runs/diagnostics")

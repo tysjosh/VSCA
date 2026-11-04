@@ -117,6 +117,106 @@ def earlier_score(examples: list[Example]) -> dict:
     }
 
 
+def _vplus_flags(res) -> tuple[bool, bool, bool]:
+    """(flagged, any arithmetic failure, any ungrounded operand) for a VPlusResult."""
+    arith = any(s.arithmetic is not True for s in res.steps)
+    ground = any(not s.grounded for s in res.steps)
+    return arith or ground, arith, ground
+
+
+def grounding_coverage(csv_path, cfg) -> dict:
+    """V2 diagnostic (Design 5.3 item 1): which failures V+ flags, per manual label (or auto_hint if unlabelled)."""
+    from .verify_plus import check_response, vplus_from_cfg
+
+    wl, grounding = vplus_from_cfg(cfg)
+    with open(csv_path, newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    labelled = any((r.get("manual_label") or "").strip() for r in rows)
+    key = "manual_label" if labelled else "auto_hint"
+    groups = defaultdict(lambda: {"n": 0, "flagged": 0, "arithmetic": 0, "grounding": 0, "grounding_only": 0})
+    ref_n, ref_rejected, ref_ops = 0, 0, Counter()
+    for r in rows:
+        gold = Fraction(r["gold"])
+        res = check_response(r["question"], r["generation"], gold, wl, grounding)
+        flagged, arith, ground = _vplus_flags(res)
+        g = groups[(r.get(key) or "").strip() or "unlabelled"]
+        g["n"] += 1
+        g["flagged"] += flagged
+        g["arithmetic"] += arith
+        g["grounding"] += ground
+        g["grounding_only"] += ground and not arith
+        if r.get("reference"):
+            ref = check_response(r["question"], r["reference"], gold, wl, grounding)
+            ref_n += 1
+            ref_rejected += not ref.verified
+            for s in ref.steps:
+                ref_ops.update(s.ungrounded)
+    share = lambda a, n: a / n if n else 0.0
+    out = {
+        "csv": str(csv_path),
+        "grouped_by": key,
+        "n_rows": len(rows),
+        "vplus_grounding": grounding,
+        "grounding_whitelist": cfg.grounding_whitelist,
+        "flagged_share": share(sum(g["flagged"] for g in groups.values()), len(rows)),
+        "groups": {
+            name: {
+                "n": g["n"],
+                "flagged_share": share(g["flagged"], g["n"]),
+                "arithmetic_share": share(g["arithmetic"], g["n"]),
+                "grounding_share": share(g["grounding"], g["n"]),
+                "grounding_only_share": share(g["grounding_only"], g["n"]),
+            }
+            for name, g in sorted(groups.items())
+        },
+        "reference": {
+            "n": ref_n,
+            "false_rejection_rate": share(ref_rejected, ref_n),
+            "top_ungrounded_operands": ref_ops.most_common(20),
+        },
+    }
+    if labelled:
+        wq = out["groups"].get("wrong_quantity_or_operation")
+        out["wrong_quantity_flag_share"] = wq["flagged_share"] if wq else None
+        out["gate_0.40_passed"] = bool(wq and wq["flagged_share"] >= 0.40)
+    return out
+
+
+def vplus_trace(eval_rows: list[dict], records: list[dict], cfg) -> dict:
+    """V2 diagnostic: V+ valid-trace rate of eval generations, next to V_r trace validity and lucky guesses."""
+    from .verify_plus import check_response, vplus_from_cfg
+
+    wl, grounding = vplus_from_cfg(cfg)
+    by_id = {r["id"]: r for r in records}
+    n = correct = trace_valid = vplus = lucky = missing = 0
+    kinds = Counter()
+    for row in eval_rows:
+        src = by_id.get(row["id"])
+        if src is None:
+            missing += 1
+            continue
+        res = check_response(src["question"], row["generation"], Fraction(src["gold"]), wl, grounding)
+        n += 1
+        correct += bool(row.get("correct"))
+        trace_valid += bool(row.get("trace_valid"))
+        vplus += res.verified
+        lucky += bool(row.get("correct")) and not res.verified
+        if res.first_failed is not None:
+            kinds[res.steps[res.first_failed].kind] += 1
+    share = lambda a: a / n if n else 0.0
+    return {
+        "n": n,
+        "missing_ids": missing,
+        "vplus_grounding": grounding,
+        "accuracy": share(correct),
+        "vr_trace_valid_share": share(trace_valid),
+        "vplus_verified_share": share(vplus),
+        "lucky_guess_share": share(lucky),
+        "lucky_guess_share_of_correct": lucky / correct if correct else 0.0,
+        "first_failure_kind": dict(kinds),
+    }
+
+
 @torch.no_grad()
 def pairwise_saturation(model, tok, examples: list[Example], tau: float, max_pairs: int = 2000) -> dict:
     """Fraction of counterfactual pairs whose pairwise-loss gradient scale sigma(-margin/tau) exceeds 0.1."""

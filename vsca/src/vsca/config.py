@@ -96,6 +96,8 @@ class Config:
     inject_eta: float = 0.0
     drop_eta: float = 0.0
     shuffle_bins: int = 10
+    vplus_grounding: bool = True  # V+ (v2): also require every annotation operand to be grounded
+    grounding_whitelist: str = "60,24,7,12,100,1000,2,0.5"  # V+ constants always accepted as operands
 
     # baselines that use certification output
     ul_lambda: float = 1.0
