@@ -200,3 +200,82 @@ its `rule`):
   earliest grounding failure only if the Monte Carlo value also drops there by at least `mc_min_drop`
   (`grounding_mc`). Otherwise it's the largest MC value drop (`mc`, kind `planning`), or the sample is skipped as
   uncertain.
+### Layout (v2 files)
+| File | Contents |
+|---|---|
+| `src/vsca/verify_plus.py` | Step verifier V⁺: arithmetic validity, grounding of every operand, final answer, lucky-guess filter; error character and kind of a failed step; step boundaries for MC localisation |
+| `src/vsca/onpolicy.py` | On-policy pipeline: `sample` → `verify_samples` → `localise` → `certify_forks`, driver `prepare`, per-arm training data `build_training`, dir guard `check_dir` |
+| `scripts/sanity_v2.py` | V⁺ cases, localisation and pipeline checks with a stand-in backend, fork-loss identities |
+| `scripts/vllm_plumbing_v2.py` | The v2 pipeline through the vLLM code path with a stand-in engine (CPU) |
+| `scripts/smoke_v2.sh` | Every v2 arm, both pipeline dirs, a dynamic run, evals, v2 diagnostics, stats and `resume_test_v2.sh` on CPU |
+| `scripts/resume_test_v2.sh` | Interrupts a dynamic `vsca2` run during sampling, fork certification, mid-epoch and at a deadline; checks the resumed run is identical |
+| `scripts/pilot_v2.sh` | The pre-registered v2 pilot (`PILOT_V2.md`) on the GPU machine, by stage |
+| `PILOT_V2.md` | Pre-registration of the v2 pilot |
+### Design → code
+| Design (`VSCA_V2_DESIGN.md`) | Code |
+|---|---|
+| §4.1 step 1, sample k solutions | `onpolicy.sample` (`onpolicy_k`, `rollout_temperature`, `rollout_top_p`, `gen_max_new`; `onpolicy_samples` copies an existing samples file) |
+| §4.1 step 2, V⁺ and lucky-guess filter | `verify_plus.check_response`, `onpolicy.verify_samples` (`vplus_grounding`, `grounding_whitelist`) |
+| §4.1 step 3, first error (direct or Monte Carlo) | `onpolicy.localise` (`mc_M`, `mc_min_drop`, `max_rollout_tokens`); `verify_plus.step_boundaries` |
+| §4.1 step 4, certify the fork | `onpolicy.certify_forks` (`k`, `M`, `cert_block`, `cert_bs`) |
+| §4.1 step 5, fork loss | `objectives.fork_loss` (`fork_beta`), `compute_loss` branch for the v2 methods |
+| §4.1 step 6, SFT on verified samples (+ references) | `onpolicy.build_training` (`v2_ref_sft`) |
+| Refresh each epoch | `train` without `onpolicy_dir`: `refresh: epoch` runs the pipeline into `run_dir/onpolicy_epoch<e>` before every epoch |
+| §5.1 RFT-verified | `method: rft_verified` |
+| §5.1 Step-DPO-style | `method: stepdpo_fork` (unlikelihood on `e` at the first error, no positive set) |
+| §5.1 VSCA v2 (full) | `method: vsca2`, `variant: full` |
+| §5.1 VSCA v2 without grounding | `method: vsca2`, `vplus_grounding: false`, its own pipeline dir from the same samples |
+| §5.1 VSCA v2 with uncertified sets | `method: vsca2`, `variant: uncertified` (the first \|A_t\| snapshot candidates) |
+| §5.1 same starting point | `init_adapter` (the SFT adapter of the same seed) |
+| §5.3 grounding coverage, 0.40 gate | `diagnose grounding` (`diagnostics.grounding_coverage`; `gate_0.40_passed` once labelled) |
+| §5.3 fork recoverability | `diagnose recoverability` (`diagnostics.fork_recoverability`) |
+| §5.2 valid-trace rate | `diagnose vplus_trace` (`diagnostics.vplus_trace`) |
+### Commands (v2)
+```bash
+python scripts/sanity_v2.py                       # V+, pipeline and loss checks (CPU)
+python scripts/vllm_plumbing_v2.py                # vLLM code path with a stand-in engine (CPU)
+bash scripts/smoke_v2.sh                          # every v2 code path on a 135M model (CPU); ends with "smoke v2 OK"
+# one shared pipeline dir per seed, then the arms train from it
+python -m vsca.cli onpolicy --config configs/base.yaml --set seed=0 --set init_adapter=runs/<sft run>/adapter_best --out runs/v2_onpolicy_s0
+python -m vsca.cli onpolicy --config configs/base.yaml --set seed=0 --set init_adapter=runs/<sft run>/adapter_best \
+  --set vplus_grounding=false --set onpolicy_samples=runs/v2_onpolicy_s0/samples.jsonl --out runs/v2_onpolicy_nogr_s0
+python -m vsca.cli train --config configs/base.yaml --set method=vsca2 --set seed=0 --set lr=5e-5 \
+  --set init_adapter=runs/<sft run>/adapter_best --set onpolicy_dir=runs/v2_onpolicy_s0 --set run_name=v2_vsca2_s0
+python -m vsca.cli diagnose grounding --config configs/base.yaml --out_dir runs/diag_v2
+python -m vsca.cli diagnose recoverability --config configs/base.yaml --onpolicy_dir runs/v2_onpolicy_s0 --out_dir runs/diag_v2
+python -m vsca.cli diagnose vplus_trace --config configs/base.yaml --eval_file runs/v2_vsca2_s0/test.jsonl --split gsm8k_test --out_dir runs/v2_vsca2_s0
+bash scripts/pilot_v2.sh [diag|onpolicy|train|passk|stats|all]   # GPU machine; resumable; FORCE=1 overrides the gate
+```
+`pilot_v2.sh` needs `best_lr.json` and the go/no-go pilot's SFT and claim-span masking runs (seeds 0–2); it reuses
+them and aborts with a message if an adapter is missing. A pipeline dir is refused by `train` if its seed, model,
+`limit_train`, `vplus_grounding` or `grounding_whitelist` differ from the run's config.
+### Deviations from the design and open choices (v2)
+- **Loss sign.** Design §4.1 writes `+β·log(1−π(e|h))`, which as a term to minimise would *raise* π(e). The code
+  minimises `β·(−log(1−π(e|h)))` (unlikelihood), the intended term. An empty certified set leaves only that term.
+- **SFT initialisation.** v2 arms and their pipelines start from the SFT adapter of the same seed (`init_adapter`).
+  The base model writes no `<<…>>` annotations (0/200 in the base-model taxonomy sample), so V⁺ would have nothing
+  to check on its samples; the design's failure taxonomy is of SFT failures.
+- **Matched step budget.** v2 arms train `ceil(n_train_problems / eff_bs)` optimizer steps per epoch, as SFT does,
+  drawing micro-batches from a seeded shuffle of the epoch's examples (cycled if shorter). The design says "same
+  budget"; its 25-minute training estimate only holds at SFT's step count.
+- **Steps and fork tokens.** A step is a `<<expr=result>>` annotation; its span starts at the start of its line, and
+  the text after the last step line (the `####` line) is one more step for MC localisation. Fork token positions come
+  from re-tokenising the sample text exactly as the loss sees it. A fork example is the sample cut after the fork
+  token and supervised only there, so the wrong continuation after the error is never trained on.
+- **Error character.** An arithmetic slip points at the wrong result where it is first written on the line, an
+  ungrounded operand at its first mention; if a step fails both checks, the earlier character wins.
+- **Grounding numbers.** Problem numbers include number words (zero–twenty, tens, hundred, thousand, million,
+  dozen, half, quarter, twice/double, triple, thrice, third) and the loosened forms of point E above (earlier
+  solution lines, percent forms, unit fractions, constant ratios), plus the whitelist. Operands are the numeric
+  constants of the annotation's expression, so `10-3` gives 10 and 3.
+### Cost estimate (assumption, not a measurement)
+These figures are copied from Design §5.2 (L40S) and have not been measured with this code:
+- sampling 8 × 6,726 problems with vLLM: about 1 GPU-hour per refresh;
+- MC rollouts at the forks of failed samples (about 40 % of 54k): about 2–3 GPU-hours;
+- verification: CPU;
+- each training run: about 25 minutes;
+- total about 12 GPU-hours for 4 new arms × 3 seeds with one refresh.
+`pilot_v2.sh` trains 5 arms × 3 seeds and builds two pipeline dirs per seed (the no-grounding dir reuses the
+samples but repeats localisation and certification). Under the same assumptions that is roughly
+3 × (1 + 2 × (2–3)) + 15 × 0.42 ≈ 21–27 GPU-hours, before pass@8 and evaluation. Use the `compute.json` files of
+the first seed to replace these numbers.
