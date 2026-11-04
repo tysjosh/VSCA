@@ -106,6 +106,7 @@ class Example:
     claims: list[Claim]
     claim_of_token: list[int]  # index of a *valid* claim each response token overlaps, else -1
     cf_pairs: list[dict] = field(default_factory=list)  # for CF-Select (Sec. 3.4)
+    supervise_from: int = 0  # labels only from response token supervise_from on (v2 fork examples)
 
     @property
     def claim_mask(self) -> list[bool]:
@@ -204,12 +205,16 @@ def build_cf_pairs(tok, ex: Example) -> list[dict]:
 # ---------------------------------------------------------------- batching
 
 
-def collate(examples: list[Example], pad_id: int, per_token: Optional[dict] = None, extras: Optional[dict] = None):
+def collate(examples: list[Example], pad_id: int, per_token: Optional[dict] = None, extras: Optional[dict] = None,
+            bad: Optional[dict] = None):
     """Right-padded batch. Per-token arrays are aligned to full-sequence positions.
 
     ``per_token`` maps a name to {example_id: list[float] over response tokens}.
     ``extras`` maps example_id to {resp_t: list[token_id]} (certified alternatives) and
     is materialised as ``extra_ids`` [B, L, K] padded with -1.
+    ``bad`` maps example_id to {resp_t: token_id} (v2: the erroneous token at a fork) and is
+    materialised as ``bad_ids`` [B, L], -1 elsewhere (always present).
+    Labels start at response token ``Example.supervise_from`` (0 unless set).
     """
     L = max(len(e.prompt_ids) + len(e.resp_ids) for e in examples)
     B = len(examples)
@@ -226,12 +231,14 @@ def collate(examples: list[Example], pad_id: int, per_token: Optional[dict] = No
             for alts in extras.get(e.id, {}).values():
                 kmax = max(kmax, len(alts))
     extra_ids = torch.full((B, L, max(kmax, 1)), -1, dtype=torch.long)
+    bad_ids = torch.full((B, L), -1, dtype=torch.long)
     for b, e in enumerate(examples):
         P = len(e.prompt_ids)
         seq = e.prompt_ids + e.resp_ids
         input_ids[b, : len(seq)] = torch.tensor(seq)
         attn[b, : len(seq)] = 1
-        labels[b, P : len(seq)] = torch.tensor(e.resp_ids)
+        s0 = e.supervise_from
+        labels[b, P + s0 : len(seq)] = torch.tensor(e.resp_ids[s0:], dtype=torch.long)
         claim[b, P : len(seq)] = torch.tensor(e.claim_mask)
         claim_id[b, P : len(seq)] = torch.tensor(e.claim_of_token)
         resp_pos[b, P : len(seq)] = torch.arange(len(e.resp_ids))
@@ -245,6 +252,11 @@ def collate(examples: list[Example], pad_id: int, per_token: Optional[dict] = No
                 t = int(t)
                 if t < len(e.resp_ids) and alts:
                     extra_ids[b, P + t, : len(alts)] = torch.tensor(alts)
+        if bad:
+            for t, a in bad.get(e.id, {}).items():
+                t = int(t)
+                if t < len(e.resp_ids):
+                    bad_ids[b, P + t] = int(a)
     batch = {
         "input_ids": input_ids,
         "attention_mask": attn,
@@ -253,6 +265,7 @@ def collate(examples: list[Example], pad_id: int, per_token: Optional[dict] = No
         "claim_id": claim_id,
         "resp_pos": resp_pos,
         "extra_ids": extra_ids,
+        "bad_ids": bad_ids,
         "examples": examples,
     }
     batch.update({f"tok_{k}": v for k, v in named.items()})

@@ -134,7 +134,7 @@ def grounding_coverage(csv_path, cfg) -> dict:
     labelled = any((r.get("manual_label") or "").strip() for r in rows)
     key = "manual_label" if labelled else "auto_hint"
     groups = defaultdict(lambda: {"n": 0, "flagged": 0, "arithmetic": 0, "grounding": 0, "grounding_only": 0})
-    ref_n, ref_rejected, ref_ops = 0, 0, Counter()
+    ref_n, ref_rejected, ref_ungrounded, ref_ops = 0, 0, 0, Counter()
     for r in rows:
         gold = Fraction(r["gold"])
         res = check_response(r["question"], r["generation"], gold, wl, grounding)
@@ -149,6 +149,7 @@ def grounding_coverage(csv_path, cfg) -> dict:
             ref = check_response(r["question"], r["reference"], gold, wl, grounding)
             ref_n += 1
             ref_rejected += not ref.verified
+            ref_ungrounded += any(not s.grounded for s in ref.steps)
             for s in ref.steps:
                 ref_ops.update(s.ungrounded)
     share = lambda a, n: a / n if n else 0.0
@@ -172,6 +173,7 @@ def grounding_coverage(csv_path, cfg) -> dict:
         "reference": {
             "n": ref_n,
             "false_rejection_rate": share(ref_rejected, ref_n),
+            "grounding_false_rejection_rate": share(ref_ungrounded, ref_n),
             "top_ungrounded_operands": ref_ops.most_common(20),
         },
     }
@@ -188,13 +190,17 @@ def vplus_trace(eval_rows: list[dict], records: list[dict], cfg) -> dict:
 
     wl, grounding = vplus_from_cfg(cfg)
     by_id = {r["id"]: r for r in records}
-    n = correct = trace_valid = vplus = lucky = missing = 0
+    n = correct = trace_valid = vplus = lucky = missing = n_ref = ref_ungrounded = 0
     kinds = Counter()
     for row in eval_rows:
         src = by_id.get(row["id"])
         if src is None:
             missing += 1
             continue
+        if src.get("answer"):  # V+ grounding false rejections on the (correct) reference solutions
+            ref = check_response(src["question"], src["answer"], Fraction(src["gold"]), wl, grounding)
+            n_ref += 1
+            ref_ungrounded += any(not s.grounded for s in ref.steps)
         res = check_response(src["question"], row["generation"], Fraction(src["gold"]), wl, grounding)
         n += 1
         correct += bool(row.get("correct"))
@@ -214,6 +220,45 @@ def vplus_trace(eval_rows: list[dict], records: list[dict], cfg) -> dict:
         "lucky_guess_share": share(lucky),
         "lucky_guess_share_of_correct": lucky / correct if correct else 0.0,
         "first_failure_kind": dict(kinds),
+        "reference_n": n_ref,
+        "reference_grounding_false_rejection_rate": ref_ungrounded / n_ref if n_ref else None,
+    }
+
+
+def fork_recoverability(onpolicy_dir) -> dict:
+    """V2 diagnostic (Design 5.3 item 2): at first-error forks, how often does at least one top-k alternative have a
+    V+-verified continuation? Reads forks.jsonl and onpolicy_stats.json of an on-policy pipeline dir."""
+    import json
+
+    d = Path(onpolicy_dir)
+    st = json.loads((d / "onpolicy_stats.json").read_text())
+    forks = [f for rec in load_cert(d / "forks.jsonl") for f in rec["forks"]]
+
+    def summary(fs):
+        n = len(fs)
+        w = sum(1 for f in fs if f["certified"])
+        return {"forks": n, "with_certified": w, "share_with_certified": w / n if n else None,
+                "mean_certified": sum(len(f["certified"]) for f in fs) / n if n else None}
+
+    kinds, rules = defaultdict(list), defaultdict(list)
+    for f in forks:
+        kinds[f["kind"]].append(f)
+        rules[f["rule"]].append(f)
+    failed = st["failed"]
+    return {
+        "onpolicy_dir": str(d),
+        **summary(forks),
+        "by_kind": {k: summary(v) for k, v in sorted(kinds.items())},
+        "by_rule": {k: summary(v) for k, v in sorted(rules.items())},
+        "grounding_only_correct": st["grounding_only_correct"],
+        "problems": st["problems"],
+        "samples": st["samples"],
+        "verified_share": st["verified_share"],
+        "lucky_guesses": st["lucky_guesses"],
+        "failed_samples": failed,
+        "share_localised": len(forks) / failed if failed else None,
+        "share_uncertain": st["uncertain"] / failed if failed else None,
+        "share_skipped": st.get("skipped", 0) / failed if failed else None,
     }
 
 

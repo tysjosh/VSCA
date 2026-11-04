@@ -22,7 +22,13 @@ METHODS = (
     "unlikelihood",   # SFT + unlikelihood on uncertified top-k candidates
     "cf_select",      # earlier formulation: binary counterfactual score + pairwise loss
     "rft",            # SFT on reference data + verified rollouts from certification
+    # VSCA v2 (on-policy, Design Section 4); all train from an on-policy pipeline dir (onpolicy.py)
+    "vsca2",          # SFT on V+-verified samples + certified set and unlikelihood at each first-error fork
+    "rft_verified",   # SFT on V+-verified samples only (symbolic filtering, no forks)
+    "stepdpo_fork",   # SFT on V+-verified samples + unlikelihood on the erroneous token, no certified set
 )
+
+V2_METHODS = ("vsca2", "rft_verified", "stepdpo_fork")
 
 VSCA_VARIANTS = ("full", "claim_only", "decision_only", "uncertified", "shuffled")
 
@@ -97,7 +103,19 @@ class Config:
     drop_eta: float = 0.0
     shuffle_bins: int = 10
     vplus_grounding: bool = True  # V+ (v2): also require every annotation operand to be grounded
-    grounding_whitelist: str = "60,24,7,12,100,1000,2,0.5"  # V+ constants always accepted as operands
+    # V+ constants always accepted as operands (point E of the README's grounding trade-off table)
+    grounding_whitelist: str = "60,24,7,12,100,1000,2,0.5,1,0.01,30,31,365,52"
+
+    # VSCA v2 on-policy pipeline (onpolicy.py; reuses k, M, cert_block, cert_bs, rollout_* for fork certification)
+    init_adapter: Optional[str] = None  # LoRA adapter the v2 policy starts from (the SFT adapter of the same seed)
+    onpolicy_k: int = 8                 # samples per training problem
+    mc_M: int = 4                       # Monte Carlo rollouts per step boundary (planning-error localisation)
+    mc_min_drop: float = 0.5            # smaller largest value drop -> sample skipped as "uncertain"
+    fork_beta: float = 1.0              # weight of the unlikelihood term on the erroneous token
+    v2_ref_sft: bool = False            # also SFT on the reference solutions
+    onpolicy_dir: Optional[str] = None  # train from an existing pipeline dir (`vsca onpolicy --out DIR`)
+    onpolicy_samples: Optional[str] = None  # copy this samples.jsonl instead of sampling (same data across arms)
+    debug_seed_samples: bool = False    # test hook: add 3 synthetic samples per problem (reference, slip, invented operand)
 
     # baselines that use certification output
     ul_lambda: float = 1.0
@@ -122,6 +140,7 @@ class Config:
     deadline: Optional[float] = None  # unix time to stop cleanly; default from $VSCA_DEADLINE
     debug_stop_after_steps: Optional[int] = None         # test hook: checkpoint and exit after N optimizer steps
     debug_stop_after_cert_examples: Optional[int] = None  # test hook: exit after N newly certified examples
+    debug_stop_after_sample_examples: Optional[int] = None  # test hook: exit after N newly sampled problems (v2)
 
     extra: dict = field(default_factory=dict)
 
@@ -141,6 +160,8 @@ class Config:
             raise ValueError(f"unknown method {self.method!r}; choose from {METHODS}")
         if self.variant not in VSCA_VARIANTS:
             raise ValueError(f"unknown variant {self.variant!r}; choose from {VSCA_VARIANTS}")
+        if self.method in V2_METHODS and self.variant not in ("full", "uncertified"):
+            raise ValueError(f"method {self.method} supports variant full or uncertified, not {self.variant!r}")
         if self.rollout_backend not in ("hf", "vllm"):
             raise ValueError("rollout_backend must be 'hf' or 'vllm'")
         if self.refresh not in ("epoch", "once"):

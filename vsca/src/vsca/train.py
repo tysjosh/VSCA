@@ -88,7 +88,7 @@ def _cf_term(model, tok, batch, logits, cfg: Config, rng: random.Random, device)
 # Config keys that may differ between sessions of the same run without changing what it computes.
 _SESSION_KEYS = {
     "device", "resume", "ckpt_every", "keep_ckpt", "deadline", "debug_stop_after_steps",
-    "debug_stop_after_cert_examples", "extra",
+    "debug_stop_after_cert_examples", "debug_stop_after_sample_examples", "extra",
 }
 
 

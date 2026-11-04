@@ -28,7 +28,7 @@ _TENS = {"thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "ei
 _OTHER = {
     "hundred": Fraction(100), "thousand": Fraction(1000), "million": Fraction(10**6), "dozen": Fraction(12),
     "half": Fraction(1, 2), "quarter": Fraction(1, 4), "twice": Fraction(2), "double": Fraction(2),
-    "triple": Fraction(3),
+    "triple": Fraction(3), "thrice": Fraction(3), "third": Fraction(1, 3),
 }
 _WORDS = {**{k: Fraction(v) for k, v in {**_UNITS, **_TENS}.items()}, **_OTHER}
 _WORD_RE = re.compile(r"\b(" + "|".join(sorted(_WORDS, key=len, reverse=True)) + r")s?\b", re.IGNORECASE)
@@ -50,19 +50,53 @@ def parse_whitelist(s: Union[str, Iterable, None]) -> set[Fraction]:
     return out
 
 
-def problem_numbers(question: str) -> set[Fraction]:
-    """Numbers in the problem text: numerals (with their absolute values) and cardinal number words."""
+_PERCENT_RE = re.compile(r"\s?(%|percent\b)", re.IGNORECASE)
+_OPS = set("+-*/×÷^=")
+
+
+def _touches_operator(text: str, start: int, end: int) -> bool:
+    """True if the numeral text[start:end] is next to an arithmetic operator (spaces skipped), as in ``5*9973 =``."""
+    i = start - 1
+    while i >= 0 and text[i] == " ":
+        i -= 1
+    j = end
+    while j < len(text) and text[j] == " ":
+        j += 1
+    standalone_x = lambda k: text[k] == "x" and not (k > 0 and text[k - 1].isalpha()) and not (
+        k + 1 < len(text) and text[k + 1].isalpha())
+    return (i >= 0 and (text[i] in _OPS or standalone_x(i))) or (j < len(text) and (text[j] in _OPS or standalone_x(j)))
+
+
+def text_numbers(text: str, lo: int = 0, hi: Optional[int] = None, prose_only: bool = False) -> set[Fraction]:
+    """Numbers stated in text[lo:hi]: numerals (with absolute values) and number words, plus their equivalent forms:
+    ``25%`` also gives 0.25 and the factors 1.25 / 0.75; a value strictly between 0 and 1 also gives its percent
+    value (0.25 -> 25) and, for a unit fraction, its denominator ("a quarter" -> 4). With ``prose_only``, numerals
+    next to an arithmetic operator are skipped: they restate a step's expression rather than state a quantity."""
     out = set()
-    for m in NUM_RE.finditer(question):
+    hi = len(text) if hi is None else hi
+    for m in NUM_RE.finditer(text, lo, hi):
         v = parse_number(m.group())
-        if v is not None:
-            out.add(v)
-            out.add(abs(v))
-    for m in _WORD_RE.finditer(question):
+        if v is None or (prose_only and _touches_operator(text, m.start(), m.end())):
+            continue
+        out.update((v, abs(v)))
+        if _PERCENT_RE.match(text, m.end()):
+            p = abs(v) / 100
+            out.update((p, 1 + p, 1 - p))
+    for m in _WORD_RE.finditer(text, lo, hi):
         out.add(_WORDS[m.group(1).lower()])
-    for m in _COMPOUND_RE.finditer(question):
+    for m in _COMPOUND_RE.finditer(text, lo, hi):
         out.add(Fraction(_UNITS.get(m.group(1).lower(), _TENS.get(m.group(1).lower(), 0)) + _UNITS[m.group(2).lower()]))
+    for v in list(out):
+        if 0 < v < 1:
+            out.add(v * 100)
+            if v.numerator == 1:
+                out.add(Fraction(v.denominator))
     return out
+
+
+def problem_numbers(question: str) -> set[Fraction]:
+    """Numbers in the problem text: numerals and number words, with the equivalent forms of ``text_numbers``."""
+    return text_numbers(question)
 
 
 def _normalise(expr: str) -> str:
@@ -85,6 +119,17 @@ def _collect(node: ast.AST, out: list) -> None:
         _collect(node.right, out)
     else:
         raise ValueError(f"unsupported expression node: {type(node).__name__}")
+
+
+def _const_divisions(expr: str) -> list[tuple[Fraction, Fraction]]:
+    """(a, b) for every ``a/b`` of two numeric constants in the expression (``1/4``), for ratio grounding."""
+    try:
+        tree = ast.parse(_normalise(expr), mode="eval")
+    except (SyntaxError, ValueError, RecursionError):
+        return []
+    const = lambda n: isinstance(n, ast.Constant) and isinstance(n.value, (int, float)) and not isinstance(n.value, bool)
+    return [(Fraction(str(n.left.value)), Fraction(str(n.right.value))) for n in ast.walk(tree)
+            if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div) and const(n.left) and const(n.right)]
 
 
 def expr_operands(expr: str) -> Optional[list[Fraction]]:
@@ -177,13 +222,22 @@ def check_response(
     text = truncate_response(text)
     allowed = problem_numbers(question) | set(whitelist)
     steps = []
+    seen_upto = 0  # numbers written in the solution text before this step's line are grounded too
     for j, c in enumerate(parse_claims(text)):
         line_start = text.rfind("\n", 0, c.start) + 1
         arith = c.valid
         bad: list[Fraction] = []
         if grounding:
+            if line_start > seen_upto:
+                allowed |= text_numbers(text, seen_upto, line_start)
+                seen_upto = line_start
+            # quantities stated in this line's prose before the annotation ("with 31 days, ..."), but not the
+            # numerals of an expression restated there ("5*9973 = <<5*9973=..>>")
+            step_allowed = allowed | text_numbers(text, line_start, c.start, prose_only=True)
             ops = expr_operands(c.expr)
-            bad = [v for v in (ops or []) if v not in allowed]
+            # a constant ratio a/b is grounded if its value is (``1/4`` for a problem's "25%" or "quarter")
+            ratio_ok = {x for a, b in _const_divisions(c.expr) if b != 0 and a / b in step_allowed for x in (a, b)}
+            bad = [v for v in (ops or []) if v not in step_allowed and v not in ratio_ok]
         grounded = not bad
         chars = []
         if arith is not True:

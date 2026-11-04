@@ -68,6 +68,22 @@ def cmd_certify(args):
     print(f"wrote {out}")
 
 
+def cmd_onpolicy(args):
+    """VSCA v2: sample -> verify -> localise -> certify the forks into one dir, shared by the arms of a seed."""
+    from .data import load_split
+    from .modeling import load_model, load_tokenizer
+    from .onpolicy import prepare
+    from .utils import ComputeLog
+
+    cfg = _cfg(args)
+    out = Path(args.out)
+    tok = load_tokenizer(cfg.model_name)
+    recs = load_split(cfg.data_dir, "gsm8k_train", cfg.limit_train)
+    model, _ = load_model(cfg, adapter=cfg.init_adapter)
+    stats = prepare(model, tok, recs, cfg, out, clog=ComputeLog(out / "compute.json"))
+    print(json.dumps(stats, indent=2))
+
+
 def cmd_eval(args):
     from .data import load_split
     from .evaluate import evaluate
@@ -145,6 +161,18 @@ def cmd_diagnose(args):
         if not args.eval_file:
             raise SystemExit("vplus_trace needs --eval_file (output of `vsca eval`)")
         res = D.vplus_trace(read_jsonl(args.eval_file), load_split(cfg.data_dir, args.split), cfg)
+    elif args.which == "recoverability":
+        op_dir = args.onpolicy_dir
+        if not op_dir:  # build the pipeline dir with --adapter (default init_adapter) first
+            from .onpolicy import prepare
+            from .utils import ComputeLog
+
+            op_dir = out_dir / "onpolicy"
+            tok = load_tokenizer(cfg.model_name)
+            model, _ = load_model(cfg, adapter=args.adapter or cfg.init_adapter)
+            prepare(model, tok, load_split(cfg.data_dir, "gsm8k_train", cfg.limit_train), cfg, op_dir,
+                    clog=ComputeLog(Path(op_dir) / "compute.json"))
+        res = D.fork_recoverability(op_dir)
     (out_dir / f"diag_{args.which}.json").write_text(json.dumps(res, indent=2))
     print(json.dumps(res, indent=2))
 
@@ -189,6 +217,8 @@ def main(argv=None):
     sp = add("certify", cmd_certify)
     sp.add_argument("--adapter", default=None)
     sp.add_argument("--out", required=True)
+    sp = add("onpolicy", cmd_onpolicy)
+    sp.add_argument("--out", required=True, help="on-policy pipeline dir (resumable by rerunning)")
     sp = add("eval", cmd_eval)
     sp.add_argument("--adapter", default=None)
     sp.add_argument("--split", default="gsm8k_test", help="gsm8k_test | gsm8k_val | svamp_all")
@@ -200,11 +230,15 @@ def main(argv=None):
     sp.add_argument("--temperature", type=float, default=0.7)
     sp.add_argument("--out", required=True)
     sp = add("diagnose", cmd_diagnose)
-    sp.add_argument("which", choices=["taxonomy", "mass", "audit", "earlier_score", "grounding", "vplus_trace"])
+    sp.add_argument("which", choices=["taxonomy", "mass", "audit", "earlier_score", "grounding", "vplus_trace",
+                                      "recoverability"])
     sp.add_argument("--eval_file")
     sp.add_argument("--csv", default="../labeling/error_taxonomy_sft.csv", help="grounding: labelled taxonomy CSV")
     sp.add_argument("--split", default="gsm8k_test", help="vplus_trace: split the eval file was produced on")
     sp.add_argument("--cert")
+    sp.add_argument("--onpolicy_dir", help="recoverability: existing on-policy dir (else built into OUT_DIR/onpolicy)")
+    sp.add_argument("--adapter", default=None, help="recoverability without --onpolicy_dir: policy adapter "
+                                                    "(default init_adapter)")
     sp.add_argument("--with_model", action="store_true")
     sp.add_argument("--out_dir", default="runs/diagnostics")
     sp = sub.add_parser("stats")

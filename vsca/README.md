@@ -158,3 +158,45 @@ its first epoch with the untrained model, so the two agree for the first epoch a
   lm_eval --model hf --model_args pretrained=Qwen/Qwen2.5-1.5B,peft=runs/<run>/adapter_best --tasks mmlu,ifeval
   ```
 - **vLLM rollout backend** for certification.
+
+## VSCA v2
+
+On-policy verified credit assignment (design: `VSCA_V2_DESIGN.md`, Sections 4–5). This section is filled in as the
+v2 work lands. The on-policy pipeline is `src/vsca/onpolicy.py` (`vsca.cli onpolicy --out DIR`), the V⁺ verifier is
+`src/vsca/verify_plus.py`, and its checks are in `scripts/sanity_v2.py`.
+
+### Finding: V⁺ grounding rejects some correct steps (trade-off chosen before any training)
+
+Grounding requires every operand of a `<<expr=result>>` step to be a stated quantity. Correct GSM8K references
+often use quantities that are never stated: inferred counts ("5 knots"), unit conversions (8 pints per gallon),
+calendar constants and algebra lines (`x=<<97=97>>`). The table measures, on the 200 rows of
+`labeling/error_taxonomy_sft.csv`, how many correct references grounding rejects ("ref. false rejection") and how
+many of the 163 `needs_manual` SFT failures it still flags. Each row adds to the one above it. At every row, an
+operand invented inside a restated expression (`5*9973 = <<5*9973=49865>>`) is still rejected.
+
+| Point | Grounded operands | Ref. false rejection | Flags / 163 |
+|---|---|---|---|
+| FEAT-001 | problem numbers and number words, earlier annotation results, whitelist `60,24,7,12,100,1000,2,0.5` | 45.5 % (91/200) | 54 |
+| C | + numbers written in earlier solution lines; numbers in the same line's prose before the annotation that are not next to an operator; percent forms (25 % ↔ 0.25, 1.25, 0.75; 0.25 → 25); unit fractions give their denominator ("a quarter" → 4); "thrice", "third"; a constant ratio `a/b` whose value is grounded | 13.0 % (26/200) | 20 |
+| D | + whitelist `1, 0.01` | 9.5 % (19/200) | 17 |
+| **E (chosen)** | + whitelist `30, 31, 365, 52` | **8.5 % (17/200)** | **14** |
+| F | + any single-constant annotation `<<N=N>>` | 5.5 % (11/200) | 11 |
+| G | + the word "fifth" | 5.0 % (10/200) | 10 |
+| H | + whitelist `3, 4, 5, 6, 8, 10` | 1.5 % (3/200) | 6 |
+
+E is the default `grounding_whitelist` (`60,24,7,12,100,1000,2,0.5,1,0.01,30,31,365,52`). At E, grounding rejects
+6.8 % (458/6,726) of the GSM8K train references and 6.0 % (79/1,319) of the test references. F was rejected because
+`<<9973=9973>>` would then pass, and H because it accepts invented small integers. The table was measured with
+ad-hoc scripts that aren't committed. `scripts/sanity_v2.py` checks the 8.5 % at E, and `diagnose grounding`
+(`reference.grounding_false_rejection_rate`) and `diagnose vplus_trace` (`reference_grounding_false_rejection_rate`)
+report the rate.
+
+The on-policy pipeline limits the harm of the remaining false rejections (`onpolicy.localise`; each fork records
+its `rule`):
+- A correct-answer sample whose only failures are grounding failures is *unverified*. It isn't trained on (it's
+  excluded from the `rft_verified` positives and from SFT on verified samples) and it's **never** an error fork.
+  A correct-answer sample becomes a negative (`lucky_arithmetic`) only through an arithmetic failure.
+- In a wrong-answer sample, the first error is the earliest arithmetic failure (`arithmetic`). Without one, it's the
+  earliest grounding failure only if the Monte Carlo value also drops there by at least `mc_min_drop`
+  (`grounding_mc`). Otherwise it's the largest MC value drop (`mc`, kind `planning`), or the sample is skipped as
+  uncertain.
