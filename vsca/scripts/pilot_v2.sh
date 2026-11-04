@@ -15,7 +15,7 @@ C="--config configs/base.yaml --set model_name=$MODEL --set out_dir=$OUT"
 V2_LR=5e-5
 ARMS="rft_verified stepdpo_fork vsca2 vsca2_uncertified vsca2_nogrounding"
 REUSED="sft claim_mask"
-SEEDS="0 1 2"
+SEEDS=${SEEDS:-0 1 2}  # e.g. SEEDS=0 to build and train one seed at a time; stats always needs all three
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 usage() { echo "usage: $0 [diag|onpolicy|train|passk|stats|all]"; exit 1; }
 case "${1:-all}" in diag|onpolicy|train|passk|stats|all) ;; *) usage ;; esac
