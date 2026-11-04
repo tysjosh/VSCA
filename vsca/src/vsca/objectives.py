@@ -27,6 +27,24 @@ def set_nll(logits: torch.Tensor, labels: torch.Tensor, extra: torch.Tensor) -> 
     return torch.logsumexp(logits, -1) - torch.logsumexp(picked, -1)
 
 
+def fork_loss(logits: torch.Tensor, extra: torch.Tensor, bad: torch.Tensor, beta: float) -> torch.Tensor:
+    """VSCA v2 loss at a first-error fork (Design 4.1 step 5, sign per the brief, plan Decision 7):
+
+    -log sum_{a in A_t} pi(a|h) + beta * (-log(1 - pi(e|h))), with A_t = ``extra`` (padded with -1; the
+    erroneous token e = ``bad`` is not in it). An empty A_t gives only the unlikelihood term (Design 5.3).
+    Returned for every row; rows with ``bad < 0`` are not forks and are ignored by the caller.
+    """
+    lse = torch.logsumexp(logits, -1)
+    valid = extra >= 0
+    has_set = valid.any(-1)
+    # rows without a set get a finite dummy (0 logits) so that no -inf/NaN reaches the backward pass
+    picked = logits.gather(-1, extra.clamp(min=0)).masked_fill(~valid, float("-inf")).masked_fill(~has_set[:, None], 0.0)
+    set_term = torch.where(has_set, lse - torch.logsumexp(picked, -1), torch.zeros_like(lse))
+    p_bad = (logits.gather(-1, bad.clamp(min=0)[:, None]).squeeze(-1) - lse).exp()
+    ul = -torch.log((1.0 - p_bad).clamp(min=1e-6))
+    return set_term + beta * ul
+
+
 def topk_per_seq(score: torch.Tensor, seq: torch.Tensor, rho: float) -> torch.Tensor:
     mask = torch.zeros_like(score, dtype=torch.bool)
     for b in seq.unique():
@@ -117,6 +135,11 @@ def compute_loss(cfg: Config, logits: torch.Tensor, labels: torch.Tensor, seq: t
         q = cfg.cf_alpha * d + (1 - cfg.cf_alpha) * s + cfg.cf_gamma * d * s
         mask = expand_to_spans(topk_per_seq(q, seq, cfg.rho), seq, aux["claim_id"])
         per_tok = nll
+    elif method in ("vsca2", "stepdpo_fork", "rft_verified"):
+        # SFT on every supervised position except the first-error forks (bad >= 0), which get fork_loss.
+        # rft_verified has no forks, so this is plain SFT on its examples.
+        is_fork = aux["bad"] >= 0
+        per_tok = torch.where(is_fork, fork_loss(logits, aux["extra"], aux["bad"], cfg.fork_beta), nll)
     else:
         raise ValueError(method)
 
@@ -136,4 +159,17 @@ def compute_loss(cfg: Config, logits: torch.Tensor, labels: torch.Tensor, seq: t
         with torch.no_grad():
             stats["certified_mass_gap"] = float((torch.exp(-per_tok.detach()) - torch.exp(-nll.detach())).mean())
             stats["frac_positions_with_alts"] = float((aux["extra"] >= 0).any(-1).float().mean())
+    if method in ("vsca2", "stepdpo_fork", "rft_verified"):
+        with torch.no_grad():
+            is_fork = aux["bad"] >= 0
+            n_forks = int(is_fork.sum())
+            stats["n_forks"] = n_forks
+            if n_forks:
+                lg, bd = logits[is_fork], aux["bad"][is_fork]
+                p_bad = torch.softmax(lg, -1).gather(-1, bd[:, None]).squeeze(-1)
+                stats["frac_forks_with_set"] = float((aux["extra"][is_fork] >= 0).any(-1).float().mean())
+                stats["fork_ul"] = float((-torch.log((1.0 - p_bad).clamp(min=1e-6))).mean())
+            else:
+                stats["frac_forks_with_set"] = 0.0
+                stats["fork_ul"] = 0.0
     return loss, stats

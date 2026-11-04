@@ -263,6 +263,56 @@ except SystemExit:
 
 shutil.rmtree(TMP)
 
+# --- vsca2 loss (objectives.fork_loss / compute_loss) on toy float64 logits -------------------------------
+import math
+
+import torch
+
+from vsca.objectives import compute_loss
+
+g = torch.Generator().manual_seed(0)
+Z = torch.randn(5, 7, generator=g, dtype=torch.float64)
+LAB = torch.tensor([1, 2, 3, 4, 5])
+SEQ = torch.tensor([0, 0, 0, 1, 1])
+EXTRA = torch.tensor([[-1, -1], [0, 6], [-1, -1], [-1, -1], [-1, -1]])  # position 1: A_t = {0, 6}
+BAD = torch.tensor([-1, 2, -1, 4, -1])  # forks at 1 (with a set) and 3 (empty set); e = the label there
+gen = torch.Generator()
+
+
+def loss_of(method, extra=EXTRA, badv=BAD, z=Z, beta=1.0):
+    cfg = Config(method=method, fork_beta=beta)
+    return compute_loss(cfg, z, LAB[: len(z)], SEQ[: len(z)], {"extra": extra, "bad": badv}, gen)
+
+
+def hand(beta=1.0):
+    p = torch.softmax(Z, -1)
+    total = 0.0
+    for i in range(5):
+        if BAD[i] < 0:
+            total += -math.log(p[i, LAB[i]])
+        else:
+            A = [a for a in EXTRA[i].tolist() if a >= 0]
+            total += (-math.log(sum(p[i, a] for a in A)) if A else 0.0) + beta * -math.log(1 - p[i, BAD[i]])
+    return total / 5
+
+
+l2, st2 = loss_of("vsca2")
+check("vsca2 loss = (sum non-fork nll + sum fork [-log pi(A) + beta*(-log(1-pi(e)))]) / N",
+      abs(float(l2) - hand()) < 1e-12 and st2["n_forks"] == 2 and st2["frac_forks_with_set"] == 0.5)
+no_fork = torch.full((5,), -1)
+check("vsca2 / stepdpo_fork / rft_verified without forks == sft exactly",
+      all(torch.equal(loss_of(m, badv=no_fork)[0], loss_of("sft")[0]) for m in ("vsca2", "stepdpo_fork", "rft_verified")))
+z1 = Z[3:4]
+p_e = float(torch.softmax(z1, -1)[0, 4])
+l_empty = loss_of("vsca2", extra=EXTRA[3:4], badv=BAD[3:4], z=z1)[0]
+check("empty A_t: only the unlikelihood term", abs(float(l_empty) + math.log(1 - p_e)) < 1e-12)
+check("fork_beta scales the unlikelihood term",
+      abs(float(loss_of("vsca2", beta=2.0)[0]) - hand(2.0)) < 1e-12
+      and abs(float(loss_of("vsca2", beta=0.0)[0]) - hand(0.0)) < 1e-12 and hand(2.0) > hand(1.0))
+zg = Z.clone().requires_grad_(True)
+loss_of("vsca2", z=zg)[0].backward()
+check("vsca2 loss gradient finite with an empty set", bool(torch.isfinite(zg.grad).all()))
+
 # --- grounding false rejections on correct GSM8K references (decision: trade-off point E, README) ----------
 from vsca.diagnostics import grounding_coverage
 

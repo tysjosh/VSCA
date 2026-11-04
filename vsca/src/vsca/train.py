@@ -7,13 +7,14 @@ import math
 import os
 import random
 import shutil
+from pathlib import Path
 
 import numpy as np
 import torch
 from transformers import get_cosine_schedule_with_warmup
 
 from .certify import build_extras, certify, load_cert, uncertified_candidates
-from .config import Config
+from .config import V2_METHODS, Config
 from .data import Example, collate, load_split, tokenize_example
 from .evaluate import evaluate
 from .modeling import load_model, load_tokenizer
@@ -171,12 +172,16 @@ def _truncate_log(path, max_step: int) -> None:
 
 def _fresh_start(run_dir) -> None:
     """Remove outputs of an earlier attempt that left no checkpoint (or resume=false)."""
-    for pattern in ("train_log.jsonl", "compute.json", "cert_epoch*", "extras_stats_*", "val_epoch*.jsonl", "ckpt.pt*"):
+    for pattern in ("train_log.jsonl", "compute.json", "cert_epoch*", "extras_stats_*", "val_epoch*.jsonl", "ckpt.pt*",
+                    "onpolicy_stats_*"):
         for f in run_dir.glob(pattern):
             f.unlink()
     for d in ("adapter_last", "adapter_best"):
         if (run_dir / d).exists():
             shutil.rmtree(run_dir / d)
+    for d in run_dir.glob("onpolicy_epoch*"):  # v2 per-epoch pipeline dirs
+        if d.is_dir():
+            shutil.rmtree(d)
 
 
 def train(cfg: Config) -> dict:
@@ -222,11 +227,19 @@ def train(cfg: Config) -> dict:
     if cfg.method == "cf_select":
         per_token["cf_s"] = _cf_s_table(examples, cfg.cf_regime)
 
-    model, device = load_model(cfg, trainable=True)
+    # VSCA v2 arms train from an on-policy pipeline dir (onpolicy.py), starting from init_adapter (Decision 1).
+    v2 = cfg.method in V2_METHODS
+    if v2 and cfg.onpolicy_dir:
+        from .onpolicy import check_dir
+
+        check_dir(cfg.onpolicy_dir, cfg)
+
+    model, device = load_model(cfg, adapter=cfg.init_adapter if v2 else None, trainable=True)
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(params, lr=cfg.lr, weight_decay=cfg.weight_decay)
     accum = max(1, cfg.eff_bs // cfg.micro_bs)
-    steps_per_epoch = math.ceil(len(examples) / cfg.eff_bs)
+    # v2: the same optimizer-step budget as SFT on the training problems (Decision 3)
+    steps_per_epoch = math.ceil((len(train_recs) if v2 else len(examples)) / cfg.eff_bs)
     total = steps_per_epoch * cfg.epochs
     sched = get_cosine_schedule_with_warmup(opt, int(cfg.warmup_ratio * total), total)
     gen = torch.Generator().manual_seed(cfg.seed)
@@ -250,6 +263,30 @@ def train(cfg: Config) -> dict:
         recs = load_cert(run_dir / f"cert_epoch{e}.jsonl")
         return build_extras(recs, cfg, cfg.seed + e)[0]
 
+    def onpolicy_dir_of(epoch: int):
+        if cfg.onpolicy_dir:
+            return Path(cfg.onpolicy_dir)
+        return run_dir / f"onpolicy_epoch{cert_epoch_of(epoch)}"
+
+    def v2_data_for(epoch: int):
+        """(examples, extras, bad, order) of a v2 epoch: a seeded shuffle of the arm's examples, cycled (or cut)
+        to steps_per_epoch * eff_bs so that every arm takes the same number of optimizer steps."""
+        from .onpolicy import build_training
+
+        d = onpolicy_dir_of(epoch)
+        exs, ext, bad, st = build_training(tok, train_recs, d, cfg)
+        st["epoch"] = epoch
+        (run_dir / f"onpolicy_stats_epoch{epoch}.json").write_text(json.dumps(st, indent=2))
+        print(f"[onpolicy] epoch {epoch} training data: {st}")
+        if not exs:
+            raise SystemExit(f"{d}: no training examples for method {cfg.method} (no V+-verified samples"
+                             f"{'' if cfg.method == 'rft_verified' else ' and no forks'}); nothing to train on")
+        order = list(range(len(exs)))
+        random.Random(cfg.seed + epoch).shuffle(order)
+        n = steps_per_epoch * cfg.eff_bs
+        order = (order * math.ceil(n / len(order)))[:n]
+        return exs, ext, bad, order
+
     if resuming:
         state = _load_ckpt(run_dir, model, opt, sched, gen, rng)
         state["resumes"] = state.get("resumes", 0) + 1
@@ -268,6 +305,7 @@ def train(cfg: Config) -> dict:
 
     micro_starts = list(range(0, len(examples), cfg.micro_bs))
     extras = None
+    v2_epoch = None
     log_fh = open(run_dir / "train_log.jsonl", "a")
     try:
         while state["epoch"] < cfg.epochs:
@@ -283,23 +321,37 @@ def train(cfg: Config) -> dict:
                     st["epoch"] = epoch
                     (run_dir / f"extras_stats_epoch{epoch}.json").write_text(json.dumps(st, indent=2))
                     print(f"[certify] epoch {epoch}: {st}")
+                elif v2 and not cfg.onpolicy_dir and (epoch == 0 or cfg.refresh == "epoch"):
+                    from .onpolicy import prepare
+
+                    # sample -> verify -> localise (-> certify the forks, vsca2 only) with the current policy
+                    st = prepare(model, tok, train_recs, cfg, onpolicy_dir_of(epoch), epoch=epoch, clog=clog,
+                                 need_certify=cfg.method == "vsca2")
+                    print(f"[onpolicy] epoch {epoch}: {st}")
                 # Training randomness (dropout) is seeded per epoch, independent of certification sampling.
                 torch.manual_seed((cfg.seed * 7_919 + epoch * 104_729) % (2**62))
                 state.update(phase="train", mb_next=0)
                 save()
 
             if state["phase"] == "train":
-                if extras is None:
-                    extras = extras_for(epoch)
+                if v2:
+                    if v2_epoch is None:
+                        v2_epoch = v2_data_for(epoch)
+                    ep_examples, extras, bad, order = v2_epoch
+                    ep_micro = list(range(0, len(order), cfg.micro_bs))
+                else:
+                    if extras is None:
+                        extras = extras_for(epoch)
+                    ep_examples, bad, ep_micro = examples, None, micro_starts
+                    order = list(range(len(examples)))
+                    random.Random(cfg.seed + epoch).shuffle(order)
                 model.train()
-                order = list(range(len(examples)))
-                random.Random(cfg.seed + epoch).shuffle(order)
                 with clog.phase("train"):
                     agg: dict = {}
-                    for k_mb in range(state["mb_next"], len(micro_starts)):
-                        mb_i = micro_starts[k_mb]
-                        group = [examples[j] for j in order[mb_i : mb_i + cfg.micro_bs]]
-                        batch = collate(group, tok.pad_token_id, per_token=per_token, extras=extras)
+                    for k_mb in range(state["mb_next"], len(ep_micro)):
+                        mb_i = ep_micro[k_mb]
+                        group = [ep_examples[j] for j in order[mb_i : mb_i + cfg.micro_bs]]
+                        batch = collate(group, tok.pad_token_id, per_token=per_token, extras=extras, bad=bad)
                         ids = batch["input_ids"].to(device)
                         out = model(input_ids=ids, attention_mask=batch["attention_mask"].to(device))
                         labels = batch["labels"][:, 1:].to(device)
@@ -313,6 +365,8 @@ def train(cfg: Config) -> dict:
                             "claim_id": batch["claim_id"][:, 1:].to(device)[sel],
                             "extra": batch["extra_ids"][:, 1:].to(device)[sel],
                         }
+                        if v2:
+                            aux["bad"] = batch["bad_ids"][:, 1:].to(device)[sel]
                         for k in per_token:
                             aux[k] = batch[f"tok_{k}"][:, 1:].to(device)[sel]
                         loss, st = compute_loss(cfg, lg, lab, seq, aux, gen)
@@ -324,7 +378,7 @@ def train(cfg: Config) -> dict:
                         (loss / accum).backward()
                         for k, v in st.items():
                             agg.setdefault(k, []).append(v)
-                        if (k_mb + 1) % accum == 0 or k_mb == len(micro_starts) - 1:
+                        if (k_mb + 1) % accum == 0 or k_mb == len(ep_micro) - 1:
                             torch.nn.utils.clip_grad_norm_(params, cfg.max_grad_norm)
                             opt.step()
                             sched.step()
@@ -365,6 +419,7 @@ def train(cfg: Config) -> dict:
                 state.update(epoch=epoch + 1, phase="certify", mb_next=0)
                 if dynamic and cfg.refresh == "epoch":
                     extras = None  # the next epoch has its own certification
+                v2_epoch = None  # v2: each epoch has its own example order (and pipeline dir with refresh=epoch)
                 save()
     finally:
         log_fh.close()
@@ -372,7 +427,9 @@ def train(cfg: Config) -> dict:
     result = {
         "best_val_accuracy": state["best_acc"],
         "history": state["history"],
-        "n_train_examples": len(examples),
+        # v2: examples built from the pipeline dir per epoch (onpolicy_stats_epoch{e}.json)
+        "n_train_examples": len(examples) if not v2 else [
+            json.loads((run_dir / f"onpolicy_stats_epoch{e}.json").read_text())["examples"] for e in range(cfg.epochs)],
         "resumes": state["resumes"],
     }
     (run_dir / "train_summary.json").write_text(json.dumps(result, indent=2))
