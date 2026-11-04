@@ -41,7 +41,10 @@ from .verify_plus import check_response, step_boundaries, vplus_from_cfg
 SALT_SAMPLE, SALT_LOCALISE, SALT_CERTIFY = 101, 202, 303
 INVENTED = "9973"  # operand of the debug_seed_samples "invented number" sample
 CONFIG_FILE, STATS_FILE = "onpolicy_config.json", "onpolicy_stats.json"
-CHECKED_KEYS = ("seed", "model_name", "limit_train", "vplus_grounding", "grounding_whitelist")
+# a pipeline dir is only reused (by `onpolicy` on resume and by `train`) if all of these match: the policy that
+# sampled it (init_adapter), the data, the verifier, and the sampling / localisation / certification settings
+CHECKED_KEYS = ("seed", "model_name", "init_adapter", "limit_train", "vplus_grounding", "grounding_whitelist",
+                "vplus_min_steps", "onpolicy_k", "mc_M", "mc_min_drop", "k", "M")
 
 
 # ---------------------------------------------------------------- helpers
@@ -248,13 +251,13 @@ def _vplus_record(res) -> dict:
 
 def verify_samples(records: list[dict], samples: list[dict], cfg: Config, out_path) -> list[dict]:
     """Stage 2: V+ on every sample -> ``{"id", "results": [per sample]}`` per problem (CPU)."""
-    wl, grounding = vplus_from_cfg(cfg)
+    wl, grounding, min_steps = vplus_from_cfg(cfg)
     s_by = _by_id(samples)
 
     def work(bidx, seed):
         return {i: {"id": records[i]["id"],
                     "results": [_vplus_record(check_response(records[i]["question"], text, _gold(records[i]), wl,
-                                                             grounding))
+                                                             grounding, min_steps))
                                 for text in s_by[records[i]["id"]]["samples"]]}
                 for i in bidx}
 
@@ -280,7 +283,7 @@ def localise(model, tok, records: list[dict], samples: list[dict], verif: list[d
         ``mc_min_drop`` (Decision 10).
     For the direct rules the error character and kind are the chosen step's (Decision 6).
     """
-    wl, grounding = vplus_from_cfg(cfg)
+    wl, grounding, min_steps = vplus_from_cfg(cfg)
     s_by, v_by = _by_id(samples), _by_id(verif)
     if backend is None:
         backend = make_backend(cfg, model, tok)
@@ -295,14 +298,16 @@ def localise(model, tok, records: list[dict], samples: list[dict], verif: list[d
                     continue
                 fa = v["first_arith"]
                 if v["answer_ok"] and fa is None:
-                    n_gc += 1  # correct answer, grounding-only failure: unverified, never a fork
+                    # correct answer with a grounding-only failure, or with no checkable step (vplus_min_steps):
+                    # unverified, never a fork; the no-step case is counted by pipeline_stats
+                    n_gc += bool(v["steps"])
                     continue
                 ex = _sample_example(tok, rec, text, cfg)
                 en = {"sample": j, "ex": ex, "v": v, "skip": ex is None}
                 if fa is not None:
                     en["rule"], en["step"] = ("lucky_arithmetic" if v["answer_ok"] else "arithmetic"), fa
                 elif ex is not None:
-                    bounds = step_boundaries(check_response(rec["question"], text, _gold(rec), wl, grounding))
+                    bounds = step_boundaries(check_response(rec["question"], text, _gold(rec), wl, grounding, min_steps))
                     ts = [_token_at(ex, c) for c in bounds]
                     if any(t is None for t in ts):
                         en["skip"] = True
@@ -319,7 +324,7 @@ def localise(model, tok, records: list[dict], samples: list[dict], verif: list[d
         for (i, _, head), gs in zip(jobs, gens):
             rec = records[i]
             passed.append(sum(check_response(rec["question"], truncate_response(head + tok.decode(g, skip_special_tokens=True)),
-                                             _gold(rec), wl, grounding).verified for g in gs))
+                                             _gold(rec), wl, grounding, min_steps).verified for g in gs))
         out = {}
         for i in bidx:
             forks, n_unc, n_skip = [], 0, 0
@@ -370,7 +375,7 @@ def certify_forks(model, tok, records: list[dict], samples: list[dict], loc: lis
     Candidates are the snapshot's top-k next tokens at t excluding e (certify._position_stats); a candidate is
     certified if one of ``M`` rollouts from ``prompt + y_<t + [a]`` passes V+. Certificates are positive only.
     """
-    wl, grounding = vplus_from_cfg(cfg)
+    wl, grounding, min_steps = vplus_from_cfg(cfg)
     s_by, l_by = _by_id(samples), _by_id(loc)
     if backend is None:
         backend = make_backend(cfg, model, tok)
@@ -400,7 +405,7 @@ def certify_forks(model, tok, records: list[dict], samples: list[dict], loc: lis
             head = ex.answer[: ex.resp_offsets[f["t"]][0]]
             for g in gs:
                 text = truncate_response(head + tok.decode([a] + g, skip_special_tokens=True))
-                if check_response(records[i]["question"], text, ex.gold, wl, grounding).verified:
+                if check_response(records[i]["question"], text, ex.gold, wl, grounding, min_steps).verified:
                     if str(a) not in f["cert_text"]:
                         f["certified"].append(a)
                         f["cert_text"][str(a)] = text
@@ -422,7 +427,7 @@ def certify_forks(model, tok, records: list[dict], samples: list[dict], loc: lis
 
 def _config_record(cfg: Config, sha: Optional[str]) -> dict:
     keys = ("seed", "model_name", "init_adapter", "limit_train", "onpolicy_k", "mc_M", "mc_min_drop", "k", "M",
-            "vplus_grounding", "grounding_whitelist", "rollout_backend", "rollout_temperature", "rollout_top_p",
+            "vplus_grounding", "grounding_whitelist", "vplus_min_steps", "rollout_backend", "rollout_temperature", "rollout_top_p",
             "max_rollout_tokens", "gen_max_new", "debug_seed_samples", "onpolicy_samples")
     d = {k: getattr(cfg, k) for k in keys}
     d["samples_sha256"] = sha
@@ -445,6 +450,8 @@ def pipeline_stats(verif: list[dict], loc: list[dict], forks: Optional[list[dict
         "verified": n_ver,
         "verified_share": n_ver / n if n else 0.0,
         "lucky_guesses": sum(x["answer_ok"] and not x["verified"] for x in results),
+        # correct answers without a single <<expr=result>> step (unverified when vplus_min_steps >= 1)
+        "no_step_correct": sum(bool(x["answer_ok"]) and not x["steps"] for x in results),
         "failed": sum(r["n_failed"] for r in loc),
         "grounding_only_correct": sum(r["n_grounding_only_correct"] for r in loc),
         "failed_by_kind": dict(sorted(by_kind.items())),

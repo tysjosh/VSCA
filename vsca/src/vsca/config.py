@@ -105,6 +105,9 @@ class Config:
     vplus_grounding: bool = True  # V+ (v2): also require every annotation operand to be grounded
     # V+ constants always accepted as operands (point E of the README's grounding trade-off table)
     grounding_whitelist: str = "60,24,7,12,100,1000,2,0.5,1,0.01,30,31,365,52"
+    # V+ verifies a response only if it has at least this many <<expr=result>> steps, so a correct answer with no
+    # checkable step is treated like a lucky guess (unverified, never a fork); 0 restores the FEAT-001 behaviour
+    vplus_min_steps: int = 1
 
     # VSCA v2 on-policy pipeline (onpolicy.py; reuses k, M, cert_block, cert_bs, rollout_* for fork certification)
     init_adapter: Optional[str] = None  # LoRA adapter the v2 policy starts from (the SFT adapter of the same seed)

@@ -17,7 +17,7 @@ def check(name, cond):
     ok &= bool(cond)
 
 
-WL, _ = vplus_from_cfg(Config())
+WL, _, _ = vplus_from_cfg(Config())
 
 # --- operands -------------------------------------------------------------
 check("10-3 operands are {10, 3}", set(expr_operands("10-3")) == {Fraction(10), Fraction(3)})
@@ -66,6 +66,11 @@ r = check_response(q2, lucky, Fraction(17), WL)
 check("correct answer + ungrounded operand not verified", r.answer_ok and not r.verified and r.first_failed == 1)
 check("... but verified with grounding=False", check_response(q2, lucky, Fraction(17), WL, grounding=False).verified)
 check("wrong final answer not verified", not check_response(q2, ref2.replace("#### 17", "#### 18"), Fraction(17), WL).verified)
+nostep = "She buys 20 pens and keeps 17.\n#### 17"
+r = check_response(q2, nostep, Fraction(17), WL)
+check("correct answer with no <<..>> step not verified (vplus_min_steps=1)",
+      r.answer_ok and not r.steps and not r.verified and r.first_failed is None)
+check("... but verified with min_steps=0", check_response(q2, nostep, Fraction(17), WL, min_steps=0).verified)
 
 # --- GSM8K reference (sanity_check.py) ---------------------------------------
 natalia_q = ("Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. "
@@ -260,6 +265,12 @@ try:
     check("check_dir refuses a different seed", False)
 except SystemExit:
     check("check_dir refuses a different seed", True)
+for kv in ("init_adapter=runs/other_sft/adapter_best", "onpolicy_k=3", "mc_M=7", "M=9", "vplus_min_steps=0"):
+    try:
+        OP.check_dir(D, load_config(["configs/smoke.yaml"], [kv, "method=stepdpo_fork"]))
+        check(f"check_dir refuses a different {kv.split('=')[0]}", False)
+    except SystemExit:
+        check(f"check_dir refuses a different {kv.split('=')[0]}", True)
 
 shutil.rmtree(TMP)
 

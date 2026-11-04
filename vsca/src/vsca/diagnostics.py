@@ -128,7 +128,7 @@ def grounding_coverage(csv_path, cfg) -> dict:
     """V2 diagnostic (Design 5.3 item 1): which failures V+ flags, per manual label (or auto_hint if unlabelled)."""
     from .verify_plus import check_response, vplus_from_cfg
 
-    wl, grounding = vplus_from_cfg(cfg)
+    wl, grounding, min_steps = vplus_from_cfg(cfg)
     with open(csv_path, newline="") as fh:
         rows = list(csv.DictReader(fh))
     labelled = any((r.get("manual_label") or "").strip() for r in rows)
@@ -137,7 +137,7 @@ def grounding_coverage(csv_path, cfg) -> dict:
     ref_n, ref_rejected, ref_ungrounded, ref_ops = 0, 0, 0, Counter()
     for r in rows:
         gold = Fraction(r["gold"])
-        res = check_response(r["question"], r["generation"], gold, wl, grounding)
+        res = check_response(r["question"], r["generation"], gold, wl, grounding, min_steps)
         flagged, arith, ground = _vplus_flags(res)
         g = groups[(r.get(key) or "").strip() or "unlabelled"]
         g["n"] += 1
@@ -146,7 +146,7 @@ def grounding_coverage(csv_path, cfg) -> dict:
         g["grounding"] += ground
         g["grounding_only"] += ground and not arith
         if r.get("reference"):
-            ref = check_response(r["question"], r["reference"], gold, wl, grounding)
+            ref = check_response(r["question"], r["reference"], gold, wl, grounding, min_steps)
             ref_n += 1
             ref_rejected += not ref.verified
             ref_ungrounded += any(not s.grounded for s in ref.steps)
@@ -188,7 +188,7 @@ def vplus_trace(eval_rows: list[dict], records: list[dict], cfg) -> dict:
     """V2 diagnostic: V+ valid-trace rate of eval generations, next to V_r trace validity and lucky guesses."""
     from .verify_plus import check_response, vplus_from_cfg
 
-    wl, grounding = vplus_from_cfg(cfg)
+    wl, grounding, min_steps = vplus_from_cfg(cfg)
     by_id = {r["id"]: r for r in records}
     n = correct = trace_valid = vplus = lucky = missing = n_ref = ref_ungrounded = 0
     kinds = Counter()
@@ -198,10 +198,10 @@ def vplus_trace(eval_rows: list[dict], records: list[dict], cfg) -> dict:
             missing += 1
             continue
         if src.get("answer"):  # V+ grounding false rejections on the (correct) reference solutions
-            ref = check_response(src["question"], src["answer"], Fraction(src["gold"]), wl, grounding)
+            ref = check_response(src["question"], src["answer"], Fraction(src["gold"]), wl, grounding, min_steps)
             n_ref += 1
             ref_ungrounded += any(not s.grounded for s in ref.steps)
-        res = check_response(src["question"], row["generation"], Fraction(src["gold"]), wl, grounding)
+        res = check_response(src["question"], row["generation"], Fraction(src["gold"]), wl, grounding, min_steps)
         n += 1
         correct += bool(row.get("correct"))
         trace_valid += bool(row.get("trace_valid"))

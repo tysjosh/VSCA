@@ -213,10 +213,14 @@ def check_response(
     gold: Union[Fraction, str, int, None],
     whitelist: Optional[set[Fraction]] = None,
     grounding: bool = True,
+    min_steps: Optional[int] = None,
 ) -> VPlusResult:
-    """Run V+ on one response (truncated after its first ``####`` line)."""
+    """Run V+ on one response (truncated after its first ``####`` line). A response with fewer than ``min_steps``
+    annotation steps (default ``Config.vplus_min_steps``) is not verified even if its answer is correct."""
     if whitelist is None:
         whitelist = parse_whitelist(Config.grounding_whitelist)
+    if min_steps is None:
+        min_steps = Config.vplus_min_steps
     if gold is not None and not isinstance(gold, Fraction):
         gold = parse_number(str(gold))
     text = truncate_response(text)
@@ -264,13 +268,13 @@ def check_response(
     failed = [s.index for s in steps if not s.ok]
     return VPlusResult(
         text=text, steps=steps, answer=answer, answer_ok=answer_ok,
-        verified=answer_ok and not failed, first_failed=failed[0] if failed else None,
+        verified=answer_ok and not failed and len(steps) >= min_steps, first_failed=failed[0] if failed else None,
     )
 
 
-def vplus_from_cfg(cfg) -> tuple[set[Fraction], bool]:
-    """(whitelist, grounding) from a Config."""
-    return parse_whitelist(cfg.grounding_whitelist), bool(cfg.vplus_grounding)
+def vplus_from_cfg(cfg) -> tuple[set[Fraction], bool, int]:
+    """(whitelist, grounding, min_steps) from a Config."""
+    return parse_whitelist(cfg.grounding_whitelist), bool(cfg.vplus_grounding), int(cfg.vplus_min_steps)
 
 
 def step_boundaries(result: VPlusResult) -> list[int]:

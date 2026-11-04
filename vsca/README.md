@@ -186,8 +186,9 @@ operand invented inside a restated expression (`5*9973 = <<5*9973=49865>>`) is s
 
 E is the default `grounding_whitelist` (`60,24,7,12,100,1000,2,0.5,1,0.01,30,31,365,52`). At E, grounding rejects
 6.8 % (458/6,726) of the GSM8K train references and 6.0 % (79/1,319) of the test references. F was rejected because
-`<<9973=9973>>` would then pass, and H because it accepts invented small integers. The table was measured with
-ad-hoc scripts that aren't committed. `scripts/sanity_v2.py` checks the 8.5 % at E, and `diagnose grounding`
+`<<9973=9973>>` would then pass, and H because it accepts invented small integers. `scripts/grounding_tradeoff.py`
+reproduces every row of the table (FEAT-001 from `verify_plus.py` at commit `bc7a513`, F–H by patching the current
+verifier in the script only). `scripts/sanity_v2.py` checks the 8.5 % at E, and `diagnose grounding`
 (`reference.grounding_false_rejection_rate`) and `diagnose vplus_trace` (`reference_grounding_false_rejection_rate`)
 report the rate.
 
@@ -196,6 +197,9 @@ its `rule`):
 - A correct-answer sample whose only failures are grounding failures is *unverified*. It isn't trained on (it's
   excluded from the `rft_verified` positives and from SFT on verified samples) and it's **never** an error fork.
   A correct-answer sample becomes a negative (`lucky_arithmetic`) only through an arithmetic failure.
+- A correct-answer sample with no `<<expr=result>>` step at all is also *unverified* and never a fork
+  (`vplus_min_steps: 1`), because V⁺ has nothing to check in it. `onpolicy_stats.json` counts these samples as
+  `no_step_correct`; `vplus_min_steps: 0` restores the FEAT-001 behaviour.
 - In a wrong-answer sample, the first error is the earliest arithmetic failure (`arithmetic`). Without one, it's the
   earliest grounding failure only if the Monte Carlo value also drops there by at least `mc_min_drop`
   (`grounding_mc`). Otherwise it's the largest MC value drop (`mc`, kind `planning`), or the sample is skipped as
@@ -210,12 +214,13 @@ its `rule`):
 | `scripts/smoke_v2.sh` | Every v2 arm, both pipeline dirs, a dynamic run, evals, v2 diagnostics, stats and `resume_test_v2.sh` on CPU |
 | `scripts/resume_test_v2.sh` | Interrupts a dynamic `vsca2` run during sampling, fork certification, mid-epoch and at a deadline; checks the resumed run is identical |
 | `scripts/pilot_v2.sh` | The pre-registered v2 pilot (`PILOT_V2.md`) on the GPU machine, by stage |
+| `scripts/grounding_tradeoff.py` | Reproduces the grounding trade-off table above (CPU, seconds) |
 | `PILOT_V2.md` | Pre-registration of the v2 pilot |
 ### Design → code
 | Design (`VSCA_V2_DESIGN.md`) | Code |
 |---|---|
 | §4.1 step 1, sample k solutions | `onpolicy.sample` (`onpolicy_k`, `rollout_temperature`, `rollout_top_p`, `gen_max_new`; `onpolicy_samples` copies an existing samples file) |
-| §4.1 step 2, V⁺ and lucky-guess filter | `verify_plus.check_response`, `onpolicy.verify_samples` (`vplus_grounding`, `grounding_whitelist`) |
+| §4.1 step 2, V⁺ and lucky-guess filter | `verify_plus.check_response`, `onpolicy.verify_samples` (`vplus_grounding`, `grounding_whitelist`, `vplus_min_steps`) |
 | §4.1 step 3, first error (direct or Monte Carlo) | `onpolicy.localise` (`mc_M`, `mc_min_drop`, `max_rollout_tokens`); `verify_plus.step_boundaries` |
 | §4.1 step 4, certify the fork | `onpolicy.certify_forks` (`k`, `M`, `cert_block`, `cert_bs`) |
 | §4.1 step 5, fork loss | `objectives.fork_loss` (`fork_beta`), `compute_loss` branch for the v2 methods |
@@ -245,10 +250,15 @@ python -m vsca.cli diagnose grounding --config configs/base.yaml --out_dir runs/
 python -m vsca.cli diagnose recoverability --config configs/base.yaml --onpolicy_dir runs/v2_onpolicy_s0 --out_dir runs/diag_v2
 python -m vsca.cli diagnose vplus_trace --config configs/base.yaml --eval_file runs/v2_vsca2_s0/test.jsonl --split gsm8k_test --out_dir runs/v2_vsca2_s0
 bash scripts/pilot_v2.sh [diag|onpolicy|train|passk|stats|all]   # GPU machine; resumable; FORCE=1 overrides the gate
+python scripts/grounding_tradeoff.py              # the grounding trade-off table (CPU)
 ```
 `pilot_v2.sh` needs `best_lr.json` and the go/no-go pilot's SFT and claim-span masking runs (seeds 0–2); it reuses
-them and aborts with a message if an adapter is missing. A pipeline dir is refused by `train` if its seed, model,
-`limit_train`, `vplus_grounding` or `grounding_whitelist` differ from the run's config.
+them and aborts with a message if an adapter is missing. Its `diag` stage fails closed: it stops if
+`labeling/error_taxonomy_sft.csv` has no `manual_label`s or if the 0.40 gate fails, unless `FORCE=1`. The outcome
+(`passed`, `failed_stopped`, `unlabelled_stopped`, `failed_force`, `ungated_force`) is written to
+`v2pilot/diag/gate.json` and copied into `decision.json`. A pipeline dir is refused by `onpolicy` (on resume) and
+`train` if any of `seed`, `model_name`, `init_adapter`, `limit_train`, `vplus_grounding`, `grounding_whitelist`,
+`vplus_min_steps`, `onpolicy_k`, `mc_M`, `mc_min_drop`, `k` or `M` differ from the run's config.
 ### Deviations from the design and open choices (v2)
 - **Loss sign.** Design §4.1 writes `+β·log(1−π(e|h))`, which as a term to minimise would *raise* π(e). The code
   minimises `β·(−log(1−π(e|h)))` (unlikelihood), the intended term. An empty certified set leaves only that term.

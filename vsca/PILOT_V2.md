@@ -12,7 +12,7 @@ finding below (no model was trained or evaluated with v2 code).
 | RFT-verified | `v2_rft_verified_s<seed>` | `method=rft_verified` | symbolic filtering alone |
 | Step-DPO-style | `v2_stepdpo_fork_s<seed>` | `method=stepdpo_fork` | first-error negative alone |
 | VSCA v2 (full) | `v2_vsca2_s<seed>` | `method=vsca2 variant=full` | certified set + negative at the fork |
-| VSCA v2 without grounding | `v2_vsca2_nogrounding_s<seed>` | `method=vsca2 vplus_grounding=false` | the planning-error verifier |
+| VSCA v2 without grounding | `v2_vsca2_nogrounding_s<seed>` | `method=vsca2 vplus_grounding=false` | the grounding term of the V⁺ filter (mainly which samples count as verified; see below) |
 | VSCA v2, uncertified sets | `v2_vsca2_uncertified_s<seed>` | `method=vsca2 variant=uncertified` | verification itself |
 The reused runs are the go/no-go pilot's runs at their tuned learning rates (`best_lr.json`); claim-span masking's
 is 5e-5. The SFT run names follow the same rule. All five v2 arms use **lr 5e-5**, not tuned per arm.
@@ -36,13 +36,21 @@ is 5e-5. The SFT run names follow the same rule. All five v2 arms use **lr 5e-5*
 - **Loss.** At a fork, `−log Σ_{a∈A_t} π(a|h) + β·(−log(1 − π(e|h)))` with β = 1.0 (`fork_beta=1.0`); with an empty
   `A_t` only the unlikelihood term. SFT on V⁺-verified samples elsewhere. No reference SFT (`v2_ref_sft=false`).
 - **Verifier.** V⁺ = arithmetic validity + grounding + final answer, lucky guesses not verified; grounding whitelist
-  `60,24,7,12,100,1000,2,0.5,1,0.01,30,31,365,52` (point E below).
+  `60,24,7,12,100,1000,2,0.5,1,0.01,30,31,365,52` (point E below). A response needs at least one `<<expr=result>>`
+  step to be verified (`vplus_min_steps=1`): a correct answer with no checkable step is treated like a lucky guess
+  (unverified, never a fork) and counted as `no_step_correct` in `onpolicy_stats.json`.
+- **Pipeline reuse.** `train` refuses a pipeline dir whose `init_adapter`, seed, data, verifier settings or
+  sampling / localisation / certification settings (`onpolicy_k`, `mc_M`, `mc_min_drop`, `k`, `M`) differ from
+  the run's.
 - Checkpoint selection on the validation subset, as everywhere else.
 **Diagnostics first** (`pilot_v2.sh diag`, Design §5.3):
 1. Grounding coverage: `diagnose grounding` on `labeling/error_taxonomy_sft.csv`. If the share of
    `wrong_quantity_or_operation` failures that V⁺ flags is **below 0.40**, the script stops before training (a better
-   verifier is built first; `FORCE=1` overrides and must be reported). The gate needs manual labels; with an
-   unlabelled CSV the script reports per `auto_hint` and continues with a warning.
+   verifier is built first; `FORCE=1` overrides and must be reported). The gate needs manual labels and fails
+   closed: with an unlabelled CSV the script reports per `auto_hint` and **stops**. `FORCE=1` continues without the
+   gate; such a pilot is reported as ungated. The outcome is written to `v2pilot/diag/gate.json` and copied into
+   `decision.json` (`grounding_gate.status`: `passed`, `failed_stopped`, `unlabelled_stopped`, `failed_force`,
+   `ungated_force`).
 2. Fork recoverability: `diagnose recoverability` on 500 training problems from the seed-0 SFT adapter (share of
    forks with at least one certified alternative). Reported, not gated: the design gives no threshold. If it is low,
    `vsca2` is expected to behave like `stepdpo_fork`.
@@ -75,10 +83,16 @@ and is the default `grounding_whitelist`:
 | G | 5.0 % | 10 |
 | H | 1.5 % | 6 |
 The definition of each point is in README, section "VSCA v2". F, G and H were rejected because they let invented
-operands pass.
+operands pass. `scripts/grounding_tradeoff.py` reproduces every row from committed code.
 **Grounding coverage at E is 14/163 = 8.6 % of the auto-hinted `needs_manual` failures, before manual labels. That
 is far below the 0.40 gate of Design §5.3.** The gate stays. It is evaluated on `manual_label` once
 `error_taxonomy_sft.csv` is labelled; the auto-hint figure is not a substitute. Until then, grounding is expected to
 contribute little. Planning errors are carried by Monte Carlo localisation: a grounding failure alone never makes
-a fork, and in wrong-answer samples it is used only when the MC value also drops at that step. The
-`vsca2_nogrounding` arm tests this expectation.
+a fork, and in wrong-answer samples it is used only when the MC value also drops at that step.
+
+**What `vsca2_nogrounding` isolates.** Because a grounding failure alone never makes a fork, and an MC rollout
+past a grounding failure keeps that failure and so never passes V⁺, the forks of `vsca2` and
+`vsca2_nogrounding` are expected to differ little. The arm mainly changes which samples count as verified: the
+grounding-only correct samples become SFT positives, and fewer fork-certification rollouts are rejected. A
+difference between the two arms measures the grounding term of the V⁺ filter, not planning-error localisation;
+planning-error localisation is carried by Monte Carlo in both arms.

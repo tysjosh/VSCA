@@ -56,24 +56,37 @@ diag() {
   check $? "diagnose grounding"
   "$PY" -m vsca.cli diagnose recoverability $C --set seed=0 --set limit_train=500 --adapter "$a" --out_dir "$P/diag"
   check $? "diagnose recoverability"
-  # Decision 11: the gate is evaluated on manual labels; an unlabelled CSV only warns
-  "$PY" - "$P/diag/diag_grounding.json" "${FORCE:-0}" <<'EOF'
+  # Decision 11: the gate is evaluated on manual labels. It fails closed: an unlabelled CSV stops the pilot like a
+  # failed gate, and FORCE=1 (to be reported as an ungated run) overrides both. The outcome is written to gate.json.
+  "$PY" - "$P/diag/diag_grounding.json" "${FORCE:-0}" "$P/diag/gate.json" <<'EOF'
 import json, sys
 d = json.load(open(sys.argv[1]))
 force = sys.argv[2] == "1"
+def record(status):
+    json.dump({"status": status, "force": force, "grouped_by": d["grouped_by"],
+               "wrong_quantity_flag_share": d.get("wrong_quantity_flag_share")}, open(sys.argv[3], "w"), indent=2)
 if "gate_0.40_passed" not in d:
-    print(f"[pilot_v2] WARNING: {d['csv']} has no manual labels (grouped by {d['grouped_by']}); the 0.40 grounding "
-          "gate is not evaluated. Per-group shares:")
+    print(f"[pilot_v2] {d['csv']} has no manual labels (grouped by {d['grouped_by']}); the 0.40 grounding gate "
+          "cannot be evaluated. Per-group shares:")
     for g, v in d["groups"].items():
         print(f"  {g}: n={v['n']} flagged={v['flagged_share']:.3f} grounding={v['grounding_share']:.3f}")
-    sys.exit(0)
+    if force:
+        record("ungated_force")
+        print("[pilot_v2] continuing UNGATED because FORCE=1; report this run as ungated")
+        sys.exit(0)
+    record("unlabelled_stopped")
+    print("[pilot_v2] stopping: fill manual_label in the CSV and rerun, or rerun with FORCE=1 for an ungated pilot")
+    sys.exit(2)
 share = d["wrong_quantity_flag_share"]
 print(f"[pilot_v2] wrong_quantity_or_operation flagged by V+: {share}")
 if d["gate_0.40_passed"]:
+    record("passed")
     print("[pilot_v2] grounding gate (>= 0.40) passed")
 elif force:
+    record("failed_force")
     print("[pilot_v2] grounding gate (>= 0.40) FAILED; continuing because FORCE=1")
 else:
+    record("failed_stopped")
     print("[pilot_v2] grounding gate (>= 0.40) FAILED: build a better verifier first (FORCE=1 overrides)")
     sys.exit(2)
 EOF
@@ -169,6 +182,8 @@ out = {
     "filter_explains_gain": d["rft_verified"] <= 0.5,
     "secondary_files": sorted(p.name for p in P.glob("vsca2_vs_*.json")),
     "vplus_verified_share_per_seed": vplus,
+    # the 0.40 grounding gate outcome from `diag` (status ungated_force / failed_force must be reported as such)
+    "grounding_gate": json.loads((P / "diag" / "gate.json").read_text()) if (P / "diag" / "gate.json").exists() else None,
 }
 (P / "decision.json").write_text(json.dumps(out, indent=2))
 print(json.dumps(out, indent=2))
