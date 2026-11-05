@@ -20,6 +20,7 @@ def main():
     ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--max_tokens", type=int, default=400)
+    ap.add_argument("--max_model_len", type=int, default=1024)
     a = ap.parse_args()
     if Path(a.out).exists():
         print(f"[sample] {a.out} exists; skipping")
@@ -30,7 +31,7 @@ def main():
 
     rows = [json.loads(l) for l in open(a.split)]
     llm = LLM(model=a.model, dtype="bfloat16", enable_lora=bool(a.adapter), max_lora_rank=16, seed=a.seed,
-              gpu_memory_utilization=0.85, max_model_len=1024)
+              gpu_memory_utilization=0.85, max_model_len=a.max_model_len)
     lora = LoRARequest("a", 1, a.adapter) if a.adapter else None
     prompts = [r["prompt"] for r in rows]
     stop = ["END"]

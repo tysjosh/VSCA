@@ -39,6 +39,8 @@ def main():
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--micro_bs", type=int, default=8)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--max_len", type=int, default=None, help="drop examples longer than this many tokens")
+    ap.add_argument("--grad_ckpt", action="store_true", help="gradient checkpointing (long examples)")
     a = ap.parse_args()
     out = Path(a.out)
     if (out / "adapter" / "adapter_config.json").exists():
@@ -55,6 +57,10 @@ def main():
         return {"input_ids": p + y, "labels": [-100] * len(p) + y}
 
     data = [enc(r) for r in rows]
+    if a.max_len:
+        n0 = len(data)
+        data = [d for d in data if len(d["input_ids"]) <= a.max_len]
+        print(f"[sft] kept {len(data)}/{n0} examples of <= {a.max_len} tokens")
 
     def collate(batch):
         L = max(len(b["input_ids"]) for b in batch)
@@ -75,7 +81,9 @@ def main():
         output_dir=str(out / "ckpt"), num_train_epochs=a.epochs, learning_rate=a.lr, lr_scheduler_type="cosine",
         warmup_steps=max(1, int(0.03 * a.epochs * -(-len(data) // a.bs))), per_device_train_batch_size=a.micro_bs, gradient_accumulation_steps=a.bs // a.micro_bs,
         logging_steps=20, save_steps=200, save_total_limit=2, bf16=cuda, seed=a.seed, report_to=[],
-        remove_unused_columns=False, dataloader_num_workers=0, use_cpu=not cuda)
+        remove_unused_columns=False, dataloader_num_workers=0, use_cpu=not cuda,
+        gradient_checkpointing=a.grad_ckpt,
+        gradient_checkpointing_kwargs={"use_reentrant": False} if a.grad_ckpt else None)
     deadline = float(os.environ["SESSION_DEADLINE"]) if os.environ.get("SESSION_DEADLINE") else None
     cb = Deadline(deadline)
     tr = Trainer(model=model, args=args, train_dataset=data, data_collator=collate, callbacks=[cb])
