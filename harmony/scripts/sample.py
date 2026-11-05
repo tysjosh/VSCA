@@ -10,6 +10,17 @@ import os
 from pathlib import Path
 
 
+def gpu_share(cap: float = 0.85) -> float:
+    """vLLM memory share: 0.85, or less when another job already uses the GPU (free share minus a 5 % margin)."""
+    import torch
+
+    free, total = torch.cuda.mem_get_info()
+    share = min(cap, free / total - 0.05)
+    if share < 0.15:
+        raise SystemExit(f"only {free / 2**30:.1f} GiB free on the GPU; not starting vLLM")
+    return round(share, 3)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", required=True)
@@ -31,7 +42,7 @@ def main():
 
     rows = [json.loads(l) for l in open(a.split)]
     llm = LLM(model=a.model, dtype="bfloat16", enable_lora=bool(a.adapter), max_lora_rank=16, seed=a.seed,
-              gpu_memory_utilization=0.85, max_model_len=a.max_model_len)
+              gpu_memory_utilization=gpu_share(), max_model_len=a.max_model_len)
     lora = LoRARequest("a", 1, a.adapter) if a.adapter else None
     prompts = [r["prompt"] for r in rows]
     stop = ["END"]

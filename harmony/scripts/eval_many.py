@@ -27,8 +27,13 @@ def main():
     from vllm import LLM, SamplingParams
     from vllm.lora.request import LoRARequest
 
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from sample import gpu_share
+
     llm = LLM(model=a.model, dtype="bfloat16", enable_lora=True, max_lora_rank=16, max_loras=1, seed=0,
-              gpu_memory_utilization=0.85, max_model_len=a.max_model_len)
+              gpu_memory_utilization=gpu_share(), max_model_len=a.max_model_len)
     sp = SamplingParams(temperature=0.0, max_tokens=a.max_tokens, stop=["END"])
     lora_id = {}
     for ad, split in jobs:
