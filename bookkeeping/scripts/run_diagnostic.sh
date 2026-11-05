@@ -14,8 +14,10 @@ if [ ! -d external/finbalance ]; then
   git clone -q https://github.com/Devansh1105/finbalance.git external/finbalance && git -C external/finbalance checkout -q $FB_COMMIT \
     || { log "finbalance clone failed"; exit 1; }
 fi
-(uv pip install --python ../.venv/bin/python -q requests python-dotenv pydantic 2>/dev/null \
-  || ../.venv/bin/python -m pip install -q requests python-dotenv pydantic) || { log "deps failed"; exit 1; }
+UV=$(command -v uv || echo ~/.local/bin/uv)  # uv is in ~/.local/bin, not on the PATH of non-interactive shells
+../.venv/bin/python -c "import requests, dotenv, pydantic" 2>/dev/null \
+  || "$UV" pip install --python ../.venv/bin/python -q requests python-dotenv pydantic \
+  || { log "deps failed"; exit 1; }
 [ -f data/train.jsonl ] || ../.venv/bin/python scripts/make_data.py --out data > ~/VSCA/books_data.log 2>&1 || { log "data failed"; exit 1; }
 log "data ready: $(tr -d '\n ' < data/stats.json | head -c 300)"
 ../.venv/bin/python ../harmony/scripts/sft.py --data data --out $R --seed 0 --micro_bs 2 --max_len 4400 --grad_ckpt \
