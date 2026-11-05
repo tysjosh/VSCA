@@ -97,3 +97,14 @@ pmaj@8 uses 16 generations per problem (8 chain-of-thought + 8 programs). Compar
 sampling seed = run seed + 100). **Rule** (pmaj@8 − maj@16, rft_verified, seeds 0–1 pooled, paired bootstrap):
 ≥ +1.0 point: the program check beats spending the same samples on more chain-of-thought; ≤ +0.3: its gain is
 explained by extra compute; else discuss. Also reported: pmaj@16 (program check over all 16 chain-of-thought samples).
+
+**Experiment 3b: no-go (gain explained by compute).** rft_verified, seeds 0–1 pooled:
+| Comparison | Δ (95 % CI) |
+|---|---|
+| pmaj@8 (8 CoT + 8 programs) − maj@16 (rule) | **−1.5 (−3.3, +0.2)** |
+| pmaj@16 (program check over 16 CoT) − maj@16 | −1.1 (−2.9, +0.6) |
+| maj@16 − maj@8 | +3.4 (+1.8, +4.9) |
+maj@16 is 73.9 / 73.6 (s0 / s1), pmaj@16 72.8 / 72.5. Spending the 8 program generations on 8 more chain-of-thought
+samples gains more than the program check; on top of 16 samples the program check lowers accuracy, because the
+base-model programs (63.7 % alone) are weaker than the 16-sample majority and override it on ~74 % of problems.
+Experiment 3's gain was compute, not verification.
