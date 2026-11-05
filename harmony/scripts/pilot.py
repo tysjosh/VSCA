@@ -301,19 +301,23 @@ def cmd_train(a):
             for r, cl in cand_labels:
                 clab[r, : len(cl)] = torch.tensor(cl)
             ids, att, lab, clab = ids.to(dev), att.to(dev), lab.to(dev), clab.to(dev)
-            logits = model(input_ids=ids, attention_mask=att).logits.float()
+            # logits stay in the model dtype; only the positions a loss uses are upcast (selecting before or after
+            # the upcast gives identical values, but upcasting everything costs B x L x vocab x 4 bytes)
+            logits = model(input_ids=ids, attention_mask=att).logits
             tgt = lab[:, 1:]
             lg = logits[:, :-1]
             sel = tgt != -100
-            nll = torch.nn.functional.cross_entropy(lg[sel], tgt[sel], reduction="sum")
+            nll = torch.nn.functional.cross_entropy(lg[sel].float(), tgt[sel], reduction="sum")
             n_tok = int(sel.sum())
             floss = torch.zeros((), device=dev)
             if cand_rows:
                 rows = torch.tensor([r for r, _ in cand_labels], device=dev)
                 ct = clab[rows, 1:]
                 cm = ct != -100
-                lp = -torch.nn.functional.cross_entropy(lg[rows].transpose(1, 2), ct.clamp(min=0), reduction="none")
-                seq_lp = (lp * cm).sum(-1)  # log pi(candidate line | prompt, verified prefix)
+                r_idx, t_idx = cm.nonzero(as_tuple=True)  # labelled positions of the candidate lines
+                tok_lp = -torch.nn.functional.cross_entropy(lg[rows[r_idx], t_idx].float(), ct[r_idx, t_idx],
+                                                            reduction="none")
+                seq_lp = torch.zeros(len(cand_rows), device=dev).index_add(0, r_idx, tok_lp)  # log pi(line | prefix)
                 fl = []
                 for fi in range(len(fk)):
                     idx = [k for k, (f_, _) in enumerate(cand_rows) if f_ == fi]
@@ -332,7 +336,7 @@ def cmd_train(a):
             elif fpos:
                 rows = torch.tensor([r for r, _ in fpos], device=dev)
                 cols = torch.tensor([p - 1 for _, p in fpos], device=dev)  # logits at p-1 predict token p
-                flg = lg[rows, cols]
+                flg = lg[rows, cols].float()
                 e = torch.tensor([f["e"] for f in fk], device=dev)
                 if a.arm == "single":
                     astar = torch.tensor([f["a_star"] for f in fk], device=dev)
