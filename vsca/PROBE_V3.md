@@ -90,3 +90,10 @@ p\* matches one of the 8 chain-of-thought answers on 73–75 % of problems.
 An answer-level symbolic check (independent re-solution as a program) adds accuracy where the step-level check V⁺
 did not. Per the rule, it is the next verifier to build. Not shown here: whether it helps as a training signal, and
 how it compares with simply voting over more chain-of-thought samples at equal compute.
+
+## Experiment 3b: equal compute (added 2026-11-05 09:20, before its result)
+pmaj@8 uses 16 generations per problem (8 chain-of-thought + 8 programs). Comparison: **maj@16**, plain majority over
+16 chain-of-thought samples of the same adapter (the 8 of `test_pass8v.jsonl` plus 8 new ones, `test_pass8v_b.jsonl`,
+sampling seed = run seed + 100). **Rule** (pmaj@8 − maj@16, rft_verified, seeds 0–1 pooled, paired bootstrap):
+≥ +1.0 point: the program check beats spending the same samples on more chain-of-thought; ≤ +0.3: its gain is
+explained by extra compute; else discuss. Also reported: pmaj@16 (program check over all 16 chain-of-thought samples).
