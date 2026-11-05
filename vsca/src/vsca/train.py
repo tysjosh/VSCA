@@ -93,6 +93,24 @@ _SESSION_KEYS = {
 }
 
 
+def _fork_add_term(model, tok, group: list[Example], extras, bad, cfg: Config, device):
+    """fork_mode=add: mean ``fork_loss`` over the fork positions of a micro-batch of fork examples (None if empty)."""
+    from .objectives import fork_loss
+
+    if not group:
+        return None
+    fb = collate(group, tok.pad_token_id, extras=extras, bad=bad)
+    out = model(input_ids=fb["input_ids"].to(device), attention_mask=fb["attention_mask"].to(device))
+    sel = fb["labels"][:, 1:].to(device) != -100
+    fbad = fb["bad_ids"][:, 1:].to(device)[sel]
+    is_fork = fbad >= 0
+    if not bool(is_fork.any()):
+        return None
+    lg = out.logits[:, :-1][sel][is_fork].float()
+    ext = fb["extra_ids"][:, 1:].to(device)[sel][is_fork]
+    return fork_loss(lg, ext, fbad[is_fork], cfg.fork_beta).mean()
+
+
 def _same_config(run_dir, cfg: Config) -> None:
     p = run_dir / "config.json"
     if not p.exists():
@@ -281,11 +299,32 @@ def train(cfg: Config) -> dict:
         if not exs:
             raise SystemExit(f"{d}: no training examples for method {cfg.method} (no V+-verified samples"
                              f"{'' if cfg.method == 'rft_verified' else ' and no forks'}); nothing to train on")
-        order = list(range(len(exs)))
-        random.Random(cfg.seed + epoch).shuffle(order)
         n = steps_per_epoch * cfg.eff_bs
-        order = (order * math.ceil(n / len(order)))[:n]
-        return exs, ext, bad, order
+        fork_order = None
+        if cfg.fork_mode == "add":
+            # the verified (non-fork) examples, in build_training order, are exactly rft_verified's list, so the
+            # same seeded shuffle of their positions gives rft_verified's batches; forks are drawn separately
+            main = [i for i, e in enumerate(exs) if e.id not in bad]
+            forks = [i for i, e in enumerate(exs) if e.id in bad]
+            if not main:
+                raise SystemExit(f"{d}: fork_mode=add needs V+-verified samples; none found")
+            pos = list(range(len(main)))
+            random.Random(cfg.seed + epoch).shuffle(pos)
+            order = [main[k] for k in (pos * math.ceil(n / len(pos)))[:n]]
+            if forks:
+                random.Random(cfg.seed + epoch + 7_777_777).shuffle(forks)
+                fork_order = (forks * math.ceil(n / len(forks)))[:n]
+        else:
+            order = list(range(len(exs)))
+            random.Random(cfg.seed + epoch).shuffle(order)
+            order = (order * math.ceil(n / len(order)))[:n]
+        # fingerprint of the SFT stream, to check that fork_mode=add trains on rft_verified's batches
+        import hashlib
+
+        st["main_order_sha256"] = hashlib.sha256("\n".join(exs[j].id for j in order).encode()).hexdigest()
+        st["fork_draws"] = len(fork_order) if fork_order else 0
+        (run_dir / f"onpolicy_stats_epoch{epoch}.json").write_text(json.dumps(st, indent=2))
+        return exs, ext, bad, order, fork_order
 
     if resuming:
         state = _load_ckpt(run_dir, model, opt, sched, gen, rng)
@@ -337,12 +376,12 @@ def train(cfg: Config) -> dict:
                 if v2:
                     if v2_epoch is None:
                         v2_epoch = v2_data_for(epoch)
-                    ep_examples, extras, bad, order = v2_epoch
+                    ep_examples, extras, bad, order, fork_order = v2_epoch
                     ep_micro = list(range(0, len(order), cfg.micro_bs))
                 else:
                     if extras is None:
                         extras = extras_for(epoch)
-                    ep_examples, bad, ep_micro = examples, None, micro_starts
+                    ep_examples, bad, ep_micro, fork_order = examples, None, micro_starts, None
                     order = list(range(len(examples)))
                     random.Random(cfg.seed + epoch).shuffle(order)
                 model.train()
@@ -376,6 +415,14 @@ def train(cfg: Config) -> dict:
                                 loss = loss + cfg.cf_lambda * cf
                                 st["cf_loss"] = float(cf.detach())
                         (loss / accum).backward()
+                        if fork_order is not None:
+                            # fork_mode=add: a separate micro-batch of fork examples, backpropagated on its own
+                            fl = _fork_add_term(model, tok, [ep_examples[j] for j in fork_order[mb_i : mb_i + cfg.micro_bs]],
+                                                extras, bad, cfg, device)
+                            if fl is not None:
+                                (cfg.fork_lambda * fl / accum).backward()
+                                st["fork_add_loss"] = float(fl.detach())
+                                loss = loss.detach() + cfg.fork_lambda * fl.detach()
                         for k, v in st.items():
                             agg.setdefault(k, []).append(v)
                         if (k_mb + 1) % accum == 0 or k_mb == len(ep_micro) - 1:

@@ -115,6 +115,12 @@ class Config:
     mc_M: int = 4                       # Monte Carlo rollouts per step boundary (planning-error localisation)
     mc_min_drop: float = 0.5            # smaller largest value drop -> sample skipped as "uncertain"
     fork_beta: float = 1.0              # weight of the unlikelihood term on the erroneous token
+    # How forks enter vsca2 / stepdpo_fork training (PROBE_V3.md, experiment 1):
+    #   "replace": forks are examples in the arm's list, displacing verified samples under the matched step budget;
+    #   "add": the arm trains on exactly rft_verified's batches (the verified samples, same seeded order) and each
+    #          micro-batch adds fork_lambda * the mean fork loss of a separate micro-batch of fork examples.
+    fork_mode: str = "replace"
+    fork_lambda: float = 0.3
     v2_ref_sft: bool = False            # also SFT on the reference solutions
     onpolicy_dir: Optional[str] = None  # train from an existing pipeline dir (`vsca onpolicy --out DIR`)
     onpolicy_samples: Optional[str] = None  # copy this samples.jsonl instead of sampling (same data across arms)
@@ -169,6 +175,10 @@ class Config:
             raise ValueError("rollout_backend must be 'hf' or 'vllm'")
         if self.refresh not in ("epoch", "once"):
             raise ValueError("refresh must be 'epoch' or 'once'")
+        if self.fork_mode not in ("replace", "add"):
+            raise ValueError("fork_mode must be 'replace' or 'add'")
+        if self.fork_mode == "add" and self.method not in ("vsca2", "stepdpo_fork"):
+            raise ValueError(f"fork_mode=add is for methods vsca2 and stepdpo_fork, not {self.method!r}")
         if self.method in ("rho", "token_cleaning", "cf_select") and not self.ref_scores:
             raise ValueError(f"method {self.method} needs ref_scores (run `vsca score` with the reference model)")
         if self.method in ("token_cleaning", "sstoken") and not self.base_scores:
