@@ -37,14 +37,16 @@ def main():
     stop = ["END"]
     greedy = llm.generate(prompts, SamplingParams(temperature=0.0, max_tokens=a.max_tokens, stop=stop),
                           lora_request=lora)
-    samp = llm.generate(prompts, [SamplingParams(n=a.n, temperature=a.temperature, max_tokens=a.max_tokens, stop=stop,
-                                                 seed=a.seed * 1_000_003 + i) for i in range(len(rows))],
-                        lora_request=lora)
+    samp = [None] * len(rows)
+    if a.n > 0:  # --n 0: greedy only
+        samp = llm.generate(prompts, [SamplingParams(n=a.n, temperature=a.temperature, max_tokens=a.max_tokens,
+                                                     stop=stop, seed=a.seed * 1_000_003 + i) for i in range(len(rows))],
+                            lora_request=lora)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w") as f:
         for r, g, s in zip(rows, greedy, samp):
-            f.write(json.dumps({"id": r["id"], "greedy": g.outputs[0].text,
-                                "samples": [o.text for o in sorted(s.outputs, key=lambda o: o.index)]}) + "\n")
+            outs = [] if s is None else [o.text for o in sorted(s.outputs, key=lambda o: o.index)]
+            f.write(json.dumps({"id": r["id"], "greedy": g.outputs[0].text, "samples": outs}) + "\n")
     print(f"[sample] wrote {a.out}")
 
 
