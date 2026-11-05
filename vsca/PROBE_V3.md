@@ -47,3 +47,16 @@ Adapters: SFT, claim-span masking, rft_verified, vsca2, seeds 0–1 (the existin
 ## Not changed
 Verifier V⁺ (point E, `vplus_min_steps=1`), data split, evaluation code paths, and the v2 runs reused here.
 The probe is ungated with respect to the 0.40 grounding gate (unlabelled CSV), as the v2 pilot was.
+
+## Experiment 3 (added 2026-11-05 09:05, after experiments 1–2 and before any experiment-3 result): answer check by program
+Experiments 1–2 were negative: V⁺ checks steps locally and passes 84 % of samples, while pass@8 (86 %) exceeds
+maj@8 (70 %) by 16 points. This probe asks whether an **answer-level** symbolic check closes part of that gap.
+For every test problem the base model (Qwen2.5-1.5B, no adapter, 4-shot PAL-style prompt) writes 8 Python programs
+`def solution(): ... return answer` at temperature 0.7; each is executed in a restricted subprocess (only `math`,
+`fractions`, `datetime`, `itertools` imports; 3 s timeout; 512 MB). **p\*** = majority answer of the programs that
+run. **pmaj@8**: among the 8 existing chain-of-thought samples (`test_pass8v.jsonl`), choose p\* if some sample's
+answer equals it, else plain majority. No gold answer is used. Script: `scripts/pal_check.py`.
+**Rule** (pmaj@8 − maj@8, rft_verified adapter, seeds 0–1 pooled, paired bootstrap; same thresholds): ≥ +1.0 point:
+an answer-level symbolic check is the next verifier to build (training filter / reward); ≤ +0.3: it isn't; else
+discuss. Reported, not in the rule: program-only accuracy (p\* vs gold), the other adapters, coverage (share of
+problems where p\* matches one of the 8 samples).
