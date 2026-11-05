@@ -55,12 +55,14 @@ def gold_keys(rec: dict) -> list[tuple]:
     return [entry_key(e["doc_refs"], e["debit_account"], e["credit_account"], e["amount"]) for e in rec["expected_entries"]]
 
 
-def prompt(rec: dict) -> str:
+def prompt(rec: dict, entries_only: bool = False) -> str:
     ob = rec["opening_balance"]
     opening = "".join(f"{sec} | {a} | {float(v):.2f}\n" for sec in SECTIONS for a, v in ob[sec].items())
     docs = "".join(f"[{d['doc_id']}] {d['doc_type']} - {d['title']} ({d['date']})\n{d['ocr_text'].strip()}\n\n"
                    for d in rec["documents"])
-    return (f"Record the journal entries for the period from the documents, then the closing balance sheet.\n"
+    task = ("Record the journal entries for the period from the documents.\n" if entries_only else
+            "Record the journal entries for the period from the documents, then the closing balance sheet.\n")
+    return (task +
             f"Period: {rec['period_start']} to {rec['period_end']}\n"
             f"Opening balance:\n{opening}"
             f"Allowed accounts: {'; '.join(rec['allowed_accounts'])}\n"
@@ -68,8 +70,11 @@ def prompt(rec: dict) -> str:
             f"Answer:\n")
 
 
-def response(rec: dict) -> str:
+def response(rec: dict, entries_only: bool = False) -> str:
+    """Entries-only (pilot): the entries then END; the ledger computes the balance sheet from them."""
     ents = "".join(entry_line(k + 1, key) for k, key in enumerate(gold_keys(rec)))
+    if entries_only:
+        return "ENTRIES\n" + ents + "END"
     return "ENTRIES\n" + ents + "BALANCE SHEET\n" + "".join(bs_lines(rec, rec["expected_balance_sheet"])) + "END"
 
 

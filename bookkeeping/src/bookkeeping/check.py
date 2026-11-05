@@ -39,8 +39,10 @@ def _closest(key, remaining: Counter) -> str:
     return "account" if any(f in ("debit", "credit") for f in best) else "+".join(best)
 
 
-def first_error(rec: dict, text: str) -> dict:
+def first_error(rec: dict, text: str, entries_only: bool = False) -> dict:
+    """``entries_only``: the response ends with END after the entries (the ledger computes the balance sheet)."""
     lines = text.split("\n")
+    stop = "END" if entries_only else "BALANCE SHEET"
     remaining = Counter(gold_keys(rec))
     pos = 0
 
@@ -57,13 +59,15 @@ def first_error(rec: dict, text: str) -> dict:
         return err("format", 0, ["ENTRIES\n"], phase="header")
     i, k = 1, 1
     while True:
-        cert_entries = [entry_line(k, r) for r in remaining] or ["BALANCE SHEET\n"]
+        cert_entries = [entry_line(k, r) for r in remaining] or [stop + "\n"]
         if i >= len(lines):
             return err("format", i, cert_entries, phase="entries")
         ln = lines[i].strip()
-        if ln == "BALANCE SHEET":
+        if ln == stop:
             if remaining:
                 return err("premature_end", i, cert_entries, phase="entries", n_remaining=sum(remaining.values()))
+            if entries_only:
+                return {"ok": True, "kind": None, "line": None, "line_start": None, "certified": []}
             break
         m = ENTRY_RE.match(ln)
         if not m or int(m.group(1)) != k:
@@ -72,7 +76,7 @@ def first_error(rec: dict, text: str) -> dict:
         key = entry_key(docs, m.group(3), m.group(4), m.group(5))
         bad = valid_entry(rec, m.group(3), m.group(4), m.group(5), docs)
         if not remaining:
-            return err("extra_entry", i, ["BALANCE SHEET\n"], phase="entries", rules=bad)
+            return err("extra_entry", i, [stop + "\n"], phase="entries", rules=bad)
         if bad:
             return err("invalid", i, cert_entries, phase="entries", rules=bad)
         if remaining[key] == 0:

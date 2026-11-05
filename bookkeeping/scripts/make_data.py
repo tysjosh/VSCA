@@ -33,6 +33,8 @@ def main():
     ap.add_argument("--max_prompt", type=int, default=3300)
     ap.add_argument("--max_response", type=int, default=1100)
     ap.add_argument("--tokenizer", default="Qwen/Qwen2.5-1.5B")
+    ap.add_argument("--entries_only", action="store_true", help="pilot format: entries then END (PILOT.md)")
+    ap.add_argument("--train_levels", default="1,2", help="difficulty levels of the training split")
     a = ap.parse_args()
     from transformers import AutoTokenizer
 
@@ -40,7 +42,7 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     specs = {
-        "train": (a.n_train, TRAIN_IND, ("month", "quarter"), (1, 2), 100),
+        "train": (a.n_train, TRAIN_IND, ("month", "quarter"), tuple(int(x) for x in a.train_levels.split(",")), 100),
         "test_id": (a.n_test, TRAIN_IND, ("month", "quarter"), (1, 2), 101),
         "test_L3": (a.n_test, TRAIN_IND, ("month", "quarter"), (3,), 102),
         "test_ind": (a.n_test, HELD_IND, ("month", "quarter"), (1, 2), 103),
@@ -56,7 +58,7 @@ def main():
         rows, skipped = [], 0
         for line in open(tmp / "records.jsonl"):
             r = json.loads(line)
-            p, y = prompt(r), response(r)
+            p, y = prompt(r, a.entries_only), response(r, a.entries_only)
             sig = (p, y)
             if sig in seen:
                 continue

@@ -1,0 +1,41 @@
+# Bookkeeping VSCA pilot (pre-registered 2026-11-05, before any pilot run; diagnostic in DIAGNOSTIC.md)
+
+**Why this design.** The diagnostic showed two separate failure types at 1.5B. In-distribution, entries are almost
+always right (balance sheet replayed from the model's own entries: 99.3 %) but the reported balance sheet is wrong
+(17 % correct): an aggregation error with one correct answer, which the ledger computes exactly. On level 3 the
+entries themselves are wrong (100 % failure, replay 1.3 %), and 87 % of those first errors have ≥ 2 certified next
+entries. So the **ledger computes the balance sheet**, and the model and the training method handle **only the
+entries**, the part that can be checked but not computed.
+
+**Task.** Entries-only: documents → `ENTRIES`, one line per entry, `END` (`task.py`, `entries_only=True`). Correct =
+the multiset of entries equals the expected entries (accounts, amount, cited documents; any order). Then the
+ledger's balance sheet is correct by construction.
+
+**Data** (`scripts/make_data.py --entries_only --train_levels 1,2,3 --out data_p`): train 6,000 records, levels
+1–3, 6 industries, month and quarter periods; test sets as in the diagnostic (`test_id`, `test_L3`, `test_ind`,
+`test_year`, 300 each; same seeds, same length limits, so level 3 keeps its shorter records).
+
+**Step 0, learnability gate (per seed).** SFT (Qwen2.5-1.5B, LoRA r = 16, 2 epochs, lr 1e-4, gradient
+checkpointing), then 4 samples at temperature 0.7 for the first 3,000 training records (`train_pilot.jsonl`). The
+pilot continues only if ≥ 15 % of samples are fully verified overall **and** ≥ 5 % on level-3 records
+(`pilot.py gate`). If seed 0 fails, the pilot stops and the recommendation is a larger model, not a weaker rule.
+
+**Arms** (from the seed's SFT adapter; `harmony/scripts/pilot.py train`, lr 5e-5, **1 epoch**, 16 sequences of the
+main stream per step, 8 fork examples per step for fork arms; gradient checkpointing):
+| Arm | Main stream | Fork loss |
+|---|---|---|
+| `rft` | verified samples | none |
+| `single` | verified samples | −log π(a\*) |
+| `set` | verified samples | −log Σ_{a∈A} π(a) |
+Forks: the exact first error (`no_match`, `premature_end`, `invalid`, `extra_entry`); A = certified next tokens
+(tokens that continue some remaining expected entry); a\* = the token of A shared by the most certified entries. The
+same main stream, step count and fork stream for every arm of a seed; each fork position counts as one token.
+`neg`, `full` and `sft_cont` are left out for cost (about 1 GPU-hour per arm per seed); the harmony pilot covers them.
+
+**Evaluation.** Greedy, entries-only correctness. **Primary:** `test_L3` + `test_ind` pooled (600 records), the
+splits whose diagnostic failures were entry errors. Secondary: `test_id`, `test_year`, and the SFT adapter.
+**Seeds:** 0, 1, 2. **Statistic:** paired bootstrap over records and seeds (`vsca.cli stats compare`).
+
+**Decision rule** (points of the correct rate): **go** if `set` − `rft` ≥ +2.0 and `set` − `single` ≥ +1.0;
+**no-go** if `set` − `rft` ≤ +0.5; otherwise discuss. Also reported: the share of forks with |A| ≥ 2 (when it is
+small, `set` and `single` coincide on most forks, which limits `set` − `single`).

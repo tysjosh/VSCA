@@ -140,7 +140,8 @@ def cmd_train(a):
     cfg = vars(a).copy()
     if (out / "config.json").exists():
         old = json.loads((out / "config.json").read_text())
-        diff = [k for k in ("arm", "seed", "pools", "init", "lr", "epochs", "micro_bs", "fork_mb") if old.get(k) != cfg.get(k)]
+        diff = [k for k in ("arm", "seed", "pools", "init", "lr", "epochs", "micro_bs", "accum", "fork_mb")
+                if old.get(k) != cfg.get(k)]
         if diff:
             raise SystemExit(f"{out}: existing run has a different {diff}")
     (out / "config.json").write_text(json.dumps(cfg, indent=2))
@@ -182,6 +183,9 @@ def cmd_train(a):
     dev = "cuda" if cuda else "cpu"
     base = AutoModelForCausalLM.from_pretrained(a.model, dtype=torch.bfloat16 if cuda else torch.float32)
     model = PeftModel.from_pretrained(base, a.init, is_trainable=True).to(dev)
+    if a.grad_ckpt:  # long inputs (bookkeeping)
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        model.enable_input_require_grads()
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(params, lr=a.lr, weight_decay=0.0)
     sched = get_cosine_schedule_with_warmup(opt, max(1, int(0.03 * total)), total)
@@ -313,6 +317,7 @@ def main():
     t.add_argument("--micro_bs", type=int, default=8)
     t.add_argument("--accum", type=int, default=2)
     t.add_argument("--fork_mb", type=int, default=4, help="fork examples added to each micro-batch")
+    t.add_argument("--grad_ckpt", action="store_true")
     s = sp.add_parser("score")
     s.add_argument("--data", default="data")
     s.add_argument("--split", required=True)
