@@ -39,3 +39,11 @@ splits whose diagnostic failures were entry errors. Secondary: `test_id`, `test_
 **Decision rule** (points of the correct rate): **go** if `set` − `rft` ≥ +2.0 and `set` − `single` ≥ +1.0;
 **no-go** if `set` − `rft` ≤ +0.5; otherwise discuss. Also reported: the share of forks with |A| ≥ 2 (when it is
 small, `set` and `single` coincide on most forks, which limits `set` − `single`).
+
+## Deviation (2026-11-05 18:50): run 1 stopped, design flaw
+The on-policy samples were drawn from `train_pilot.jsonl`, the first 3,000 records of the SFT training split. After
+2 epochs of SFT the model reproduces them: 1,600 of 1,600 checked samples are identical to the training reference
+(1.0 distinct sample per record), so the pool has 12,000 verified samples and **0 forks**, and the learnability gate
+passed trivially (1.0). The fork arms would have been identical to `rft`. The run was stopped during `rft` seed 0.
+**Fix for run 2 (to be pre-registered before it runs):** sample on-policy from records **not** used in SFT (a
+separate generated pool), and gate on that pool. No arm of run 1 was evaluated.
