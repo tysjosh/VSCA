@@ -4,6 +4,9 @@
 #   screen -dmS hpilot2 bash ~/VSCA/harmony/scripts/run_pilot2.sh
 cd ~/VSCA/harmony || exit 1
 export SESSION_DEADLINE=$(cat ~/VSCA/deadline 2>/dev/null)
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+# micro_bs 4 x accum 4 (and 2 forks per micro-batch) takes the same 16 sequences and 8 forks per step, in the
+# same order, as pilot 1 (8 x 2, 4 forks): it only lowers memory when the GPU is shared.
 PY=../.venv/bin/python
 VPY=../.venv-vllm/bin/python
 HUB="--runs harmony/runs --repo olukotunjosh/harmony-runs"
@@ -28,7 +31,8 @@ for s in 0 1 2; do
   log "s$s step pools: $(tail -1 ~/VSCA/hpilot2_pools_s$s.log | cut -c1-200)"
   for arm in $ARMS; do
     $PY scripts/pilot.py train --arm $arm --seed $s --pools $P/pools.json --step_pools $P/step_pools.json \
-      --init $S/adapter --out $P/$arm >> ~/VSCA/hpilot2_train_s$s.log 2>&1; chk $? "train $arm s$s"
+      --init $S/adapter --out $P/$arm --micro_bs 4 --accum 4 --fork_mb 2 >> ~/VSCA/hpilot2_train_s$s.log 2>&1
+    chk $? "train $arm s$s"
   done
   ads=""; for arm in $ARMS; do ads="$ads $P/$arm/adapter"; done
   $VPY scripts/eval_many.py --data data --splits $SPLITS --adapters $ads > ~/VSCA/hpilot2_eval_s$s.log 2>&1; chk $? "eval s$s"
