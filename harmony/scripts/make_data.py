@@ -36,6 +36,7 @@ def main():
     ap.add_argument("--n_train", type=int, default=12000)
     ap.add_argument("--n_test", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--onpolicy", type=int, default=0, help="also write an `onpolicy` split of unseen exercises")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -48,6 +49,8 @@ def main():
         "test_minor": (a.n_test, "minor", (6, 8), MINOR_KEYS, a.seed + 3),
         "test_keys": (a.n_test, "major", (6, 8), held, a.seed + 4),
     }
+    if a.onpolicy:  # PILOT3.md: training distribution, never used in SFT; generated last so earlier splits are unchanged
+        specs["onpolicy"] = (a.onpolicy, "major", (6, 8), train_keys, a.seed + 5)
     seen = set()
     for name, (n, mode, (lo, hi), keys, seed) in specs.items():
         rng = random.Random(seed)

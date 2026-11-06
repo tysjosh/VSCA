@@ -64,7 +64,7 @@ def cmd_pools(a):
     from harmony.textfmt import prompt, step_line
 
     tok = AutoTokenizer.from_pretrained(a.model)
-    probs = {json.loads(l)["id"]: json.loads(l) for l in open(Path(a.data) / "train.jsonl")}
+    probs = {json.loads(l)["id"]: json.loads(l) for l in open(Path(a.data) / f"{a.split}.jsonl")}
     verified, forks, refs, kinds = [], [], [], Counter()
     for line in open(a.samples):
         s = json.loads(line)
@@ -118,7 +118,7 @@ def cmd_pools_step(a):
     from harmony.rules import Certifier
     from harmony.textfmt import step_line
 
-    probs = {json.loads(l)["id"]: json.loads(l) for l in open(Path(a.data) / "train.jsonl")}
+    probs = {json.loads(l)["id"]: json.loads(l) for l in open(Path(a.data) / f"{a.split}.jsonl")}
     out, sizes = [], Counter()
     for line in open(a.samples):
         s = json.loads(line)
@@ -398,6 +398,7 @@ def main():
     p.add_argument("--data", default="data")
     p.add_argument("--samples", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument("--split", default="train", help="the exercises the samples were drawn for")
     p.add_argument("--model", default="Qwen/Qwen2.5-1.5B")
     t = sp.add_parser("train")
     t.add_argument("--arm", required=True, choices=ARMS)
@@ -417,6 +418,7 @@ def main():
     q.add_argument("--data", default="data")
     q.add_argument("--samples", required=True)
     q.add_argument("--out", required=True)
+    q.add_argument("--split", default="train")
     s = sp.add_parser("score")
     s.add_argument("--data", default="data")
     s.add_argument("--split", required=True)
