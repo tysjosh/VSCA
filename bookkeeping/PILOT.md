@@ -57,7 +57,7 @@ Identical to the design above except where on-policy samples come from:
   pool. Outputs in `runs/pilotB_s<seed>/`.
 
 ## Run 2 outcome (2026-11-05 19:23): stopped after the gate, nothing to train on
-On the 3,000 unseen on-policy records, 96.4 % of samples were fully correct (level 3: 99.96 %, 252 level-3
+On the 3,000 unseen on-policy records, 96.4 % of samples were fully correct (level 3: 99.96 %, 630 level-3
 records): 11,567 verified samples, **432 forks, 1 with ≥ 2 certified next tokens**. The gate passed, but the fork
 arms would have been `rft` plus ~0 fork signal, so the run was stopped before any arm finished.
 Greedy entries-only accuracy of the seed-0 SFT model (trained on levels 1–3): test_id 100 %, test_L3 66.7 %,
