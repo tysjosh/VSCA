@@ -35,6 +35,7 @@ def main():
     ap.add_argument("--tokenizer", default="Qwen/Qwen2.5-1.5B")
     ap.add_argument("--entries_only", action="store_true", help="pilot format: entries then END (PILOT.md)")
     ap.add_argument("--train_levels", default="1,2", help="difficulty levels of the training split")
+    ap.add_argument("--onpolicy", type=int, default=0, help="also write an `onpolicy` split of this many unseen records")
     a = ap.parse_args()
     from transformers import AutoTokenizer
 
@@ -48,6 +49,11 @@ def main():
         "test_ind": (a.n_test, HELD_IND, ("month", "quarter"), (1, 2), 103),
         "test_year": (a.n_test, TRAIN_IND, ("year",), (1, 2), 104),
     }
+    if a.onpolicy:
+        # PILOT.md run 2: records for on-policy sampling, from the training distribution but never seen in SFT
+        # (generated last, so the other splits are byte-identical to a run without it)
+        specs["onpolicy"] = (a.onpolicy, TRAIN_IND, ("month", "quarter"),
+                             tuple(int(x) for x in a.train_levels.split(",")), 105)
     stats, seen = {}, set()
     for name, (n, inds, periods, levels, seed) in specs.items():
         tmp = out / f"_gen_{name}"

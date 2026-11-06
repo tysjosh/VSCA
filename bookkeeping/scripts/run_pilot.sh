@@ -20,24 +20,31 @@ chk() {
   [ "$1" -ne 0 ] && { log "$2 FAILED ($1)"; push; exit "$1"; }
   return 0
 }
-log "bookkeeping pilot start (seeds $SEEDS)"
+log "bookkeeping pilot run 2 start (seeds $SEEDS)"
 (cd ~/VSCA && .venv/bin/python hub_sync.py pull $HUB >> ~/VSCA/hubsync.log 2>&1) || true
 [ -d external/finbalance ] || { git clone -q https://github.com/Devansh1105/finbalance.git external/finbalance \
   && git -C external/finbalance checkout -q a1062b7b; chk $? "finbalance clone"; }
 UV=$(command -v uv || echo ~/.local/bin/uv)
 $PY -c "import requests, dotenv, pydantic" 2>/dev/null || "$UV" pip install --python $PY -q requests python-dotenv pydantic
-[ -f $D/train.jsonl ] || { $PY scripts/make_data.py --out $D --entries_only --train_levels 1,2,3 > ~/VSCA/bpilot_data.log 2>&1; chk $? data; }
-[ -f $D/train_pilot.jsonl ] || head -n 3000 $D/train.jsonl > $D/train_pilot.jsonl
+MK="scripts/make_data.py --entries_only --train_levels 1,2,3 --onpolicy 3000"
+[ -f $D/train.jsonl ] || { $PY $MK --out $D > ~/VSCA/bpilot_data.log 2>&1; chk $? data; }
+if [ ! -f $D/onpolicy.jsonl ]; then  # data from run 1: regenerate and check every earlier split is unchanged
+  rm -rf ${D}_new && $PY $MK --out ${D}_new > ~/VSCA/bpilot_data.log 2>&1; chk $? "data (onpolicy split)"
+  for f in train test_id test_L3 test_ind test_year; do
+    cmp -s $D/$f.jsonl ${D}_new/$f.jsonl || { log "regenerated $f differs from run 1; stopping"; exit 1; }
+  done
+  mv ${D}_new/onpolicy.jsonl ${D}_new/stats.json $D/ && rm -rf ${D}_new
+fi
 log "data: $(tr -d '\n ' < $D/stats.json | head -c 300)"
 for s in $SEEDS; do
   S=runs/p_sft_s$s
-  P=runs/pilot_s$s
+  P=runs/pilotB_s$s  # run 2 (run 1, runs/pilot_s0, is invalid: memorised samples)
   mkdir -p $P
   $PY $H/sft.py --data $D --out $S --seed $s --micro_bs 2 --max_len 4400 --grad_ckpt > ~/VSCA/bpilot_sft_s$s.log 2>&1
   chk $? "sft s$s"
-  $VPY $H/sample.py --split $D/train_pilot.jsonl --adapter $S/adapter --out $P/train_samples.jsonl --n 4 --seed $s \
+  $VPY $H/sample.py --split $D/onpolicy.jsonl --adapter $S/adapter --out $P/train_samples.jsonl --n 4 --seed $s \
     --max_tokens 800 --max_model_len 4400 > ~/VSCA/bpilot_sample_s$s.log 2>&1; chk $? "on-policy samples s$s"
-  [ -f $P/pools.json ] || { $PY scripts/pilot.py pools --data $D --samples $P/train_samples.jsonl --out $P/pools.json \
+  [ -f $P/pools.json ] || { $PY scripts/pilot.py pools --data $D --split onpolicy --samples $P/train_samples.jsonl --out $P/pools.json \
     > ~/VSCA/bpilot_pools_s$s.log 2>&1; chk $? "pools s$s"; }
   log "s$s pools: $(tail -1 ~/VSCA/bpilot_pools_s$s.log | cut -c1-400)"
   $PY scripts/pilot.py gate --pools $P/pools.json --out $P/gate.json > ~/VSCA/bpilot_gate_s$s.log 2>&1
@@ -63,7 +70,7 @@ for s in $SEEDS; do
   push
 done
 mkdir -p runs/pilot_stats
-pool() { for s in $SEEDS; do d=runs/pilot_s$s/$1; [ $1 = sft ] && d=runs/p_sft_s$s; cat $d/test_L3.score.jsonl $d/test_ind.score.jsonl > $d/primary.score.jsonl; echo $d/primary.score.jsonl; done; }
+pool() { for s in $SEEDS; do d=runs/pilotB_s$s/$1; [ $1 = sft ] && d=runs/p_sft_s$s; cat $d/test_L3.score.jsonl $d/test_ind.score.jsonl > $d/primary.score.jsonl; echo $d/primary.score.jsonl; done; }
 cmp() {
   PYTHONPATH=../vsca/src $PY -m vsca.cli stats compare --a $(pool $1) --b $(pool $2) > runs/pilot_stats/$1_vs_$2.json
   log "$1 vs $2 (primary): $(python3 -c "import json;d=json.load(open('runs/pilot_stats/$1_vs_$2.json'));print('%.1f vs %.1f, diff %+.2f [%+.2f, %+.2f]'%(100*d['acc_a'],100*d['acc_b'],100*d['diff'],100*d['ci95'][0],100*d['ci95'][1]))")"

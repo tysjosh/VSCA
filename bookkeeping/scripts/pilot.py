@@ -31,7 +31,7 @@ def cmd_pools(a):
     from transformers import AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(a.model)
-    probs = {json.loads(l)["id"]: json.loads(l) for l in open(Path(a.data) / "train_pilot.jsonl")}
+    probs = {json.loads(l)["id"]: json.loads(l) for l in open(Path(a.data) / f"{a.split}.jsonl")}
     verified, forks, refs, kinds, by_level = [], [], [], Counter(), Counter()
     for line in open(a.samples):
         s = json.loads(line)
@@ -108,6 +108,7 @@ def main():
     p.add_argument("--samples", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--model", default="Qwen/Qwen2.5-1.5B")
+    p.add_argument("--split", default="onpolicy", help="the records the samples were drawn for")
     g = sp.add_parser("gate")
     g.add_argument("--pools", required=True)
     g.add_argument("--out", required=True)
